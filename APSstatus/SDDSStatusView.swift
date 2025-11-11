@@ -4,25 +4,45 @@ struct SDDSStatusView: View {
     @StateObject private var loader = SDDSLoader()
 
     var body: some View {
-        VStack {
-            Text(loader.statusText)
-                .padding()
-
-            List {
-                ForEach(loader.columns, id: \.self) { col in
-                    VStack(alignment: .leading) {
-                        Text(col).bold()
-                        if let values = loader.dataDict[col] {
-                            // Show first 10 values for brevity
-                            Text(values.prefix(10).map { "\($0)" }.joined(separator: ", "))
-                                .font(.caption)
+        NavigationStack {
+            VStack(alignment: .leading) {
+                if loader.extractedData.isEmpty {
+                    Text(loader.statusText)
+                        .foregroundColor(.gray)
+                        .padding()
+                        .onAppear {
+                            loader.fetchStatus()
                         }
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(loader.extractedData, id: \.description) { item in
+                                HStack {
+                                    Text(item.description + ":")
+                                        .fontWeight(.semibold)
+                                    Spacer()
+                                    Text(item.value)
+                                }
+                                Divider()
+                            }
+                        }
+                        .padding()
                     }
-                    .padding(.vertical, 4)
+                }
+            }
+            .navigationTitle("APS Status")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Refresh") {
+                        loader.fetchStatus()
+                    }
                 }
             }
         }
-        .onAppear { loader.fetchStatus() }
-        .navigationTitle("APS SDDS Status")
     }
+}
+
+#Preview {
+    SDDSStatusView()
 }
