@@ -1,3 +1,5 @@
+# conda install soliday::sdds
+
 import sdds
 
 def main():
@@ -8,7 +10,9 @@ def main():
     sdds_obj = sdds.load(input_file)
     
     for page in range(sdds_obj.loaded_pages):
-
+        print('###########################')
+        print(page)
+        print('###########################')
         # Display array data for the current page
         for i, name in enumerate(sdds_obj.arrayName):
             value = sdds_obj.arrayData[i][page]
@@ -23,6 +27,8 @@ def main():
         descriptions = sdds_obj.columnData[desc_index][page]
         values = sdds_obj.columnData[value_index][page]
 
+        print(descriptions)
+        print(values)
         # Define which label keys to keep (no values)
         labels_to_keep = {
             "Current",
@@ -45,6 +51,7 @@ def main():
         print('###########################')
         # Print them side by side
         for desc, val in zip(descriptions, values):
+            print('DESC:', desc, 'is string:', isinstance(desc, str), 'VAL:', val, 'is string:', isinstance(val, str))
             if desc in labels_to_keep:
                 print(f"{desc} = {val}")
         print('###########################')
