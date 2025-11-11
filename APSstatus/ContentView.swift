@@ -3,20 +3,29 @@ import SwiftUI
 struct ContentView: View {
     var body: some View {
         NavigationStack {
-            VStack {
-                Spacer()
-                Text("APSStatus (converted)")
-                    .font(.title)
-                    .fontWeight(.semibold)
+            VStack(spacing: 30) {
                 Spacer()
                 
-                HStack {
+                // Main label
+                Text("APSStatus (converted)")
+                    .font(.largeTitle)
+                    .fontWeight(.semibold)
+                    .multilineTextAlignment(.center)
+                
+                // Home images from APS server
+                HomeImagesView()
+                    .frame(height: 120)
+                
+                // Navigation buttons
+                HStack(spacing: 50) {
                     NavigationLink("About", destination: AboutView())
-                    Spacer()
                     NavigationLink("Settings", destination: SettingsView())
                 }
-                .padding(.horizontal)
+                .buttonStyle(.borderedProminent)
+                
+                Spacer()
             }
+            .padding()
             .navigationTitle("APSStatus")
         }
     }
