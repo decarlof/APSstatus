@@ -1,17 +1,15 @@
-//
-//  APSstatusApp.swift
-//  APSstatus
-//
-//  Created by Francesco De Carlo on 11/10/25.
-//
-
 import SwiftUI
 
 @main
-struct APSstatusApp: App {
+struct APSStatusApp: App {
+    // Persist Dark Mode preference
+    @AppStorage("darkMode") private var darkMode = false
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                // Apply Dark or Light mode based on the preference
+                .preferredColorScheme(darkMode ? .dark : .light)
         }
     }
 }
