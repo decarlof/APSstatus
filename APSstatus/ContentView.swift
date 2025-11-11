@@ -1,59 +1,17 @@
 import SwiftUI
 
 struct ContentView: View {
-    private let imageURLs = [
-        "https://www3.aps.anl.gov/asd/operations/gifplots/HDSRcomfort.png",
-        "https://www3.aps.anl.gov/aod/blops/plots/WeekHistory.png"
-    ]
-    
     var body: some View {
-        NavigationStack {
-            VStack {
-                // Scrollable image section
-                ScrollView {
-                    VStack(spacing: 16) {
-                        ForEach(imageURLs, id: \.self) { url in
-                            AsyncImage(url: URL(string: url)) { phase in
-                                switch phase {
-                                case .empty:
-                                    ProgressView()
-                                        .frame(height: 220)
-                                case .success(let image):
-                                    image
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(maxWidth: .infinity)
-                                        .cornerRadius(12)
-                                        .shadow(radius: 3)
-                                case .failure:
-                                    VStack {
-                                        Image(systemName: "xmark.octagon")
-                                            .font(.largeTitle)
-                                            .foregroundColor(.red)
-                                        Text("Failed to load image")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    .frame(height: 220)
-                                @unknown default:
-                                    EmptyView()
-                                }
-                            }
-                        }
-                    }
-                    .padding()
+        TabView {
+            StatusImagesView()
+                .tabItem {
+                    Label("Status", systemImage: "photo.on.rectangle")
                 }
-                
-                // Navigation buttons (About / Settings)
-                HStack {
-                    NavigationLink("About", destination: AboutView())
-                    Spacer()
-                    NavigationLink("Settings", destination: SettingsView())
+
+            SDDSStatusView()
+                .tabItem {
+                    Label("Machine", systemImage: "waveform.path.ecg")
                 }
-                .padding(.horizontal)
-                .padding(.bottom)
-            }
-            .navigationTitle("APS Status") // <- Only this title remains
         }
     }
 }
