@@ -18,18 +18,17 @@ class SDDSLoader: ObservableObject {
         Task {
             do {
                 let (compressedData, response) = try await URLSession.shared.data(from: url)
-                guard let httpResponse = response as? HTTPURLResponse,
-                      httpResponse.statusCode == 200 else {
+                guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
                     statusText = "Failed to download file"
                     return
                 }
 
                 let decompressedData = try compressedData.gunzipped()
                 try parseSDDS(decompressedData)
-
                 statusText = "Loaded SDDS (\(extractedData.count) items)"
             } catch {
                 statusText = "Error: \(error.localizedDescription)"
+                print("Detailed error: \(error)")
             }
         }
     }
@@ -37,114 +36,183 @@ class SDDSLoader: ObservableObject {
     private func parseSDDS(_ data: Data) throws {
         var offset = 0
 
-        // 1️⃣ Read header lines until &data
+        // Read header lines until &data
         var headerLines: [String] = []
-        while true {
-            guard let range = data[offset...].firstIndex(of: 0x0A) else { break }
-            let lineData = data[offset..<range]
-            let line = String(data: lineData, encoding: .utf8)?
-                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        while offset < data.count {
+            guard let nl = data[offset...].firstIndex(of: 0x0A) else { break }
+            let lineData = data[offset..<nl]
+            let line = String(data: lineData, encoding: .utf8) ?? ""
             headerLines.append(line)
-            offset = range + 1
-            if line.lowercased().starts(with: "&data") { break }
+            offset = nl + 1
+            if line.trimmingCharacters(in: .whitespacesAndNewlines).lowercased().hasPrefix("&data") {
+                break
+            }
         }
 
-        // 2️⃣ Extract column names
-        let columns: [String] = headerLines.compactMap { line in
-            let l = line.lowercased()
-            guard l.starts(with: "&column") else { return nil }
-            if let namePart = line.split(separator: "=").dropFirst().first {
-                return namePart.split(separator: ",").first?
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
+        // Helper to extract defs (&parameter, &array, &column) with name and type
+        struct Def { let name: String; let type: String? }
+        func extractDefs(prefix: String) -> [Def] {
+            var defs: [Def] = []
+            for line in headerLines {
+                if !line.lowercased().hasPrefix(prefix) { continue }
+                let name = extractAttr(from: line, key: "name")
+                let type = extractAttr(from: line, key: "type")?.lowercased()
+                defs.append(Def(name: name ?? "", type: type))
+            }
+            return defs
+        }
+        func extractAttr(from line: String, key: String) -> String? {
+            // find key=..., quoted or unquoted, stop at comma or end
+            guard let r = line.range(of: "\(key)=", options: .caseInsensitive) else { return nil }
+            var s = String(line[r.upperBound...]).trimmingCharacters(in: .whitespaces)
+            if s.hasPrefix("\"") {
+                let rest = s.dropFirst()
+                if let endQ = rest.firstIndex(of: "\"") {
+                    return String(rest[..<endQ])
+                }
+            } else {
+                if let comma = s.firstIndex(of: ",") {
+                    s = String(s[..<comma])
+                }
+                return s.trimmingCharacters(in: .whitespaces)
             }
             return nil
         }
 
+        let params  = extractDefs(prefix: "&parameter")
+        let arrays  = extractDefs(prefix: "&array")
+        let columns = extractDefs(prefix: "&column")
+
         guard !columns.isEmpty else {
-            throw NSError(domain: "SDDSLoader", code: 1,
-                          userInfo: [NSLocalizedDescriptionKey: "No columns found"])
+            throw NSError(domain: "SDDSLoader", code: 100, userInfo: [NSLocalizedDescriptionKey: "No columns found"])
         }
 
-        // 3️⃣ Skip whitespace before binary block
-        while offset < data.count {
-            let byte = data[offset]
-            if ![0x20, 0x09, 0x0A, 0x0D].contains(byte) { break }
-            offset += 1
-        }
+        // Skip whitespace before binary block
+        while offset < data.count, [0x20, 0x09, 0x0A, 0x0D].contains(data[offset]) { offset += 1 }
 
-        // 4️⃣ Read number of rows (safe, unaligned)
-        guard offset + 4 <= data.count else {
-            throw NSError(domain: "SDDSLoader", code: 2,
-                          userInfo: [NSLocalizedDescriptionKey: "Cannot read nrows"])
-        }
-        let nrows: Int = {
-            let b0 = UInt32(data[offset])
-            let b1 = UInt32(data[offset + 1])
-            let b2 = UInt32(data[offset + 2])
-            let b3 = UInt32(data[offset + 3])
-            return Int(b0 | (b1 << 8) | (b2 << 16) | (b3 << 24))
-        }()
+        // Read nrows (Int32 LE)
+        guard offset + 4 <= data.count else { throw err("Cannot read nrows") }
+        let nrows: Int32 = data.withUnsafeBytes { $0.loadUnaligned(fromByteOffset: offset, as: Int32.self) }
         offset += 4
+        guard nrows >= 0 && nrows < 1_000_000 else { throw err("Invalid nrows \(nrows)") }
 
-        // 5️⃣ Read each column
-        var columnData: [String: [String]] = [:]
-        for col in columns { columnData[col] = [] }
+        // Functions for reading/skipping values
+        func readI32() throws -> Int32 {
+            guard offset + 4 <= data.count else { throw err("Unexpected EOF reading Int32") }
+            let v: Int32 = data.withUnsafeBytes { $0.loadUnaligned(fromByteOffset: offset, as: Int32.self) }
+            offset += 4
+            return v
+        }
+        func readString() throws -> String {
+            let L = try readI32()
+            guard L >= 0, offset + Int(L) <= data.count else { throw err("Invalid string length \(L)") }
+            let s = String(data: data[offset..<offset+Int(L)], encoding: .utf8) ?? ""
+            offset += Int(L)
+            return s
+        }
+        func skipNumericBytes(for type: String) throws {
+            let sizeMap: [String: Int] = [
+                "double": 8, "float": 4, "long": 4, "short": 2,
+                "char": 1, "uchar": 1, "ulong": 4, "ushort": 2,
+                "longlong": 8, "ulonglong": 8
+            ]
+            guard let sz = sizeMap[type] else { throw err("Unknown numeric type \(type)") }
+            guard offset + sz <= data.count else { throw err("Unexpected EOF skipping \(type)") }
+            offset += sz
+        }
 
-        // SDDS binary format stores strings as: [length (Int32)][UTF8 bytes]
-        for _ in 0..<nrows {
-            for col in columns {
-                guard offset + 4 <= data.count else { continue }
-                let lenData = data[offset..<offset+4]
-                let strLen: Int = Int(lenData[lenData.startIndex] |
-                                      lenData[lenData.startIndex+1] << 8 |
-                                      lenData[lenData.startIndex+2] << 16 |
-                                      lenData[lenData.startIndex+3] << 24)
-                offset += 4
-
-                guard offset + strLen <= data.count else { continue }
-                let strData = data[offset..<offset+strLen]
-                let value = String(data: strData, encoding: .utf8) ?? ""
-                offset += strLen
-
-                columnData[col]?.append(value)
+        // 1) Read/skip parameter values (single values in header order)
+        for p in params {
+            if (p.type ?? "") == "string" {
+                _ = try readString()
+            } else if let t = p.type {
+                try skipNumericBytes(for: t)
+            } else {
+                // If type missing, safest is to error; or skip nothing
+                throw err("Parameter \(p.name) missing type")
             }
         }
 
-        // 6️⃣ Select the parameters like Python script
-        let selectedNames: [String] = [
-            "Current",
-            "ScheduledMode",
-            "ActualMode",
-            "TopupState",
-            "InjOperation",
-            "ShutterStatus",
-            "UpdateTime",
-            "RTFBStatus",
-            "OPSMessage1",
-            "OPSMessage2",
-            "OPSMessage3",
-            "BM2ShutterClosed",
-            "BM7ShutterClosed",
-            "ID32ShutterClosed"
-        ]
-
-        var results: [(String, String)] = []
-        guard let descs = columnData["Description"], let vals = columnData["ValueString"] else {
-            extractedData = []
-            return
+        // 2) Read/skip arrays (none in your file, but keep robust)
+        for a in arrays {
+            let count = try readI32()
+            if (a.type ?? "") == "string" {
+                for _ in 0..<count { _ = try readString() }
+            } else if let t = a.type {
+                // skip count * size
+                let sizeMap: [String: Int] = [
+                    "double": 8, "float": 4, "long": 4, "short": 2,
+                    "char": 1, "uchar": 1, "ulong": 4, "ushort": 2,
+                    "longlong": 8, "ulonglong": 8
+                ]
+                guard let sz = sizeMap[t] else { throw err("Unknown array type \(t)") }
+                let bytes = Int(count) * sz
+                guard offset + bytes <= data.count else { throw err("Unexpected EOF skipping array \(a.name)") }
+                offset += bytes
+            } else {
+                throw err("Array \(a.name) missing type")
+            }
         }
 
-        // Loop over selected names in order, find all matching rows
-        for name in selectedNames {
-            for (idx, desc) in descs.enumerated() {
-                if desc == name {
-                    results.append((desc, vals[idx]))
-                    break // take the first match per parameter
+        // 3) Read table rows (row-major): for each row, for each column
+        var columnData: [String: [String]] = [:]
+        for c in columns { columnData[c.name] = [] }
+
+        for _ in 0..<Int(nrows) {
+            for c in columns {
+                if (c.type ?? "") == "string" {
+                    let v = try readString()
+                    columnData[c.name]?.append(v)
+                } else if let t = c.type {
+                    // If you ever add numeric columns, skip (or store) accordingly
+                    let sizeMap: [String: Int] = [
+                        "double": 8, "float": 4, "long": 4, "short": 2,
+                        "char": 1, "uchar": 1, "ulong": 4, "ushort": 2,
+                        "longlong": 8, "ulonglong": 8
+                    ]
+                    guard let sz = sizeMap[t] else { throw err("Unknown column type \(t)") }
+                    guard offset + sz <= data.count else { throw err("Unexpected EOF in column \(c.name)") }
+                    // Skipping numeric; if needed, parse here.
+                    offset += sz
+                } else {
+                    throw err("Column \(c.name) missing type")
                 }
             }
         }
 
-        extractedData = results
+        // 4) Select keys, trimming and avoiding duplicates
+        let selectedNames: Set<String> = [
+            "Current","ScheduledMode","ActualMode","TopupState","InjOperation",
+            "ShutterStatus","UpdateTime","RTFBStatus","OPSMessage1","OPSMessage2",
+            "OPSMessage3","BM2ShutterClosed","BM7ShutterClosed","ID32ShutterClosed"
+        ]
 
+        guard let descs = columnData["Description"], let vals = columnData["ValueString"] else {
+            print("Missing Description or ValueString. Available: \(Array(columnData.keys))")
+            extractedData = []
+            return
+        }
+
+        var found = Set<String>()
+        var results: [(String, String)] = []
+        for (i, d) in descs.enumerated() {
+            let key = d.trimmingCharacters(in: .whitespacesAndNewlines)
+            if selectedNames.contains(key), !found.contains(key) {
+                results.append((key, vals[i]))
+                found.insert(key)
+            }
+        }
+
+        // Optional diagnostics
+        if found.count != selectedNames.count {
+            let missing = selectedNames.subtracting(found)
+            if !missing.isEmpty { print("Missing selected keys: \(missing)") }
+        }
+
+        extractedData = results
+    }
+
+    private func err(_ msg: String) -> NSError {
+        NSError(domain: "SDDSLoader", code: -1, userInfo: [NSLocalizedDescriptionKey: msg])
     }
 }
