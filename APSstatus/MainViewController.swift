@@ -1,4 +1,3 @@
-import UIKit
 import SafariServices
 
 class MainViewController: UIViewController {

@@ -183,8 +183,8 @@ class SDDSLoader: ObservableObject {
         // 4) Select keys, trimming and avoiding duplicates
         let selectedNames: Set<String> = [
             "Current","ScheduledMode","ActualMode","TopupState","InjOperation",
-            "ShutterStatus","UpdateTime","RTFBStatus","OPSMessage1","OPSMessage2",
-            "OPSMessage3","BM2ShutterClosed","BM7ShutterClosed","ID32ShutterClosed"
+            "ShutterStatus","UpdateTime","OPSMessage1","OPSMessage2",
+            "OPSMessage3","OPSMessage4","OPSMessage5","Lifetime"
         ]
 
         guard let descs = columnData["Description"], let vals = columnData["ValueString"] else {
@@ -201,12 +201,6 @@ class SDDSLoader: ObservableObject {
                 results.append((key, vals[i]))
                 found.insert(key)
             }
-        }
-
-        // Optional diagnostics
-        if found.count != selectedNames.count {
-            let missing = selectedNames.subtracting(found)
-            if !missing.isEmpty { print("Missing selected keys: \(missing)") }
         }
 
         extractedData = results
