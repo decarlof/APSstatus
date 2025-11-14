@@ -35,15 +35,18 @@ struct SDDSStatusView: View {
         "OPSMessage4", // Last Dump/Trip
         "OPSMessage5", // Problem Info
         "UpdateTime"
-        // ShutterClosed keys (IDxx/BMxx) are placed after UpdateTime by custom ranking
+        // ShutterClosed keys (IDxx/BMxx) will be displayed as a grid after UpdateTime
     ]
 
     private var keyRank: [String: Int] {
         Dictionary(uniqueKeysWithValues: orderByKey.enumerated().map { ($1, $0) })
     }
 
-    // Compute a precise position for shutter keys:
-    // BM1, ID1, BM2, ID2, ..., BM35, ID35 (all after UpdateTime).
+    private func isShutterKey(_ key: String) -> Bool {
+        (key.hasPrefix("ID") || key.hasPrefix("BM")) && key.hasSuffix("ShutterClosed")
+    }
+
+    // BM1, ID1, BM2, ID2, ..., BM35, ID35 (ordered after UpdateTime base)
     private func shutterPosition(for key: String) -> Int? {
         guard (key.hasPrefix("BM") || key.hasPrefix("ID")),
               key.hasSuffix("ShutterClosed") else { return nil }
@@ -52,9 +55,7 @@ struct SDDSStatusView: View {
         let numberPart = key.dropFirst(2).replacingOccurrences(of: "ShutterClosed", with: "")
         guard let n = Int(numberPart), n >= 1 else { return nil }
 
-        // Base immediately after UpdateTime
         let base = (keyRank["UpdateTime"] ?? 0) + 1
-        // BMn first, then IDn
         let offset = (n - 1) * 2 + (prefix == "BM" ? 0 : 1)
         return base + offset
     }
@@ -65,10 +66,6 @@ struct SDDSStatusView: View {
         return Int.max
     }
 
-    private func isShutterKey(_ key: String) -> Bool {
-        (key.hasPrefix("ID") || key.hasPrefix("BM")) && key.hasSuffix("ShutterClosed")
-    }
-
     private func friendlyName(for key: String) -> String {
         // Show IDxx or BMxx by removing "ShutterClosed"
         if isShutterKey(key) {
@@ -77,21 +74,41 @@ struct SDDSStatusView: View {
         return displayName[key] ?? key
     }
 
-    private var sortedItems: [(description: String, value: String)] {
-        // Filter out BM/ID shutters that are "_NoConnection_"
-        let filtered = loader.extractedData.filter { item in
-            if isShutterKey(item.description) {
+    // Non-shutter items, sorted as before
+    private var nonShutterItems: [(description: String, value: String)] {
+        loader.extractedData
+            .filter { !isShutterKey($0.description) }
+            .sorted { a, b in
+                let ia = rank(for: a.description)
+                let ib = rank(for: b.description)
+                if ia != ib { return ia < ib }
+                return a.description < b.description
+            }
+    }
+
+    // Shutter items (BM/ID), filtered and ordered BM1, ID1, ..., BM35, ID35
+    private var shutterItemsOrdered: [(description: String, value: String)] {
+        loader.extractedData
+            .filter { item in
+                // Keep only BM/ID shutter keys and drop _NoConnection_
+                guard isShutterKey(item.description) else { return false }
                 let v = item.value.trimmingCharacters(in: .whitespacesAndNewlines)
                 return v != "_NoConnection_"
             }
-            return true
-        }
+            .sorted { a, b in
+                let ia = shutterPosition(for: a.description) ?? Int.max
+                let ib = shutterPosition(for: b.description) ?? Int.max
+                if ia != ib { return ia < ib }
+                return a.description < b.description
+            }
+    }
 
-        return filtered.sorted { a, b in
-            let ia = rank(for: a.description)
-            let ib = rank(for: b.description)
-            if ia != ib { return ia < ib }
-            return a.description < b.description
+    private func shutterColor(for value: String) -> Color {
+        let v = value.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        switch v {
+        case "ON":  return .green
+        case "OFF": return .red
+        default:    return .gray.opacity(0.5) // fallback if unexpected value
         }
     }
 
@@ -106,9 +123,10 @@ struct SDDSStatusView: View {
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 8) {
-                            ForEach(sortedItems, id: \.description) { item in
+                            // Standard list items (non-shutter)
+                            ForEach(nonShutterItems, id: \.description) { item in
                                 HStack {
-                                    Text(friendlyName(for: item.description) + ":")
+                                    Text((displayName[item.description] ?? item.description) + ":")
                                         .fontWeight(.semibold)
                                     Spacer()
 
@@ -131,6 +149,44 @@ struct SDDSStatusView: View {
                                         .frame(height: 2)
                                         .padding(.vertical, 4)
                                 }
+                            }
+
+                            // Shutter grid (BM/ID rectangles)
+                            if !shutterItemsOrdered.isEmpty {
+                                // 6 columns; rows will wrap automatically
+                                let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 6)
+
+                                // Optional section divider above the grid
+                                Rectangle()
+                                    .fill(Color.gray.opacity(0.4))
+                                    .frame(height: 2)
+                                    .padding(.vertical, 6)
+
+                                LazyVGrid(columns: columns, spacing: 8) {
+                                    ForEach(shutterItemsOrdered, id: \.description) { item in
+                                        let label = friendlyName(for: item.description)
+                                        let color = shutterColor(for: item.value)
+
+                                        ZStack {
+                                            RoundedRectangle(cornerRadius: 6)
+                                                .fill(color)
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 6)
+                                                        .stroke(Color.black.opacity(0.2), lineWidth: 1)
+                                                )
+
+                                            Text(label)
+                                                .font(.caption)
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(.white)
+                                                .lineLimit(1)
+                                                .minimumScaleFactor(0.8)
+                                        }
+                                        .frame(height: 34) // identical height; width set by grid column
+                                        .accessibilityLabel("\(label) \(item.value)")
+                                    }
+                                }
+                                .padding(.top, 4)
                             }
                         }
                         .padding()
