@@ -1,3 +1,4 @@
+# pip install soliday.sdds
 import sdds
 
 def main():
