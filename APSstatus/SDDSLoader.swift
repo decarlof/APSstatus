@@ -62,7 +62,6 @@ class SDDSLoader: ObservableObject {
             return defs
         }
         func extractAttr(from line: String, key: String) -> String? {
-            // find key=..., quoted or unquoted, stop at comma or end
             guard let r = line.range(of: "\(key)=", options: .caseInsensitive) else { return nil }
             var s = String(line[r.upperBound...]).trimmingCharacters(in: .whitespaces)
             if s.hasPrefix("\"") {
@@ -128,18 +127,16 @@ class SDDSLoader: ObservableObject {
             } else if let t = p.type {
                 try skipNumericBytes(for: t)
             } else {
-                // If type missing, safest is to error; or skip nothing
                 throw err("Parameter \(p.name) missing type")
             }
         }
 
-        // 2) Read/skip arrays (none in your file, but keep robust)
+        // 2) Read/skip arrays
         for a in arrays {
             let count = try readI32()
             if (a.type ?? "") == "string" {
                 for _ in 0..<count { _ = try readString() }
             } else if let t = a.type {
-                // skip count * size
                 let sizeMap: [String: Int] = [
                     "double": 8, "float": 4, "long": 4, "short": 2,
                     "char": 1, "uchar": 1, "ulong": 4, "ushort": 2,
@@ -164,15 +161,13 @@ class SDDSLoader: ObservableObject {
                     let v = try readString()
                     columnData[c.name]?.append(v)
                 } else if let t = c.type {
-                    // If you ever add numeric columns, skip (or store) accordingly
                     let sizeMap: [String: Int] = [
                         "double": 8, "float": 4, "long": 4, "short": 2,
                         "char": 1, "uchar": 1, "ulong": 4, "ushort": 2,
                         "longlong": 8, "ulonglong": 8
                     ]
-                    guard let sz = sizeMap[t] else { throw err("Unknown column type \(t)") }
+                    guard let sz = sizeMap[t] else { throw err("Unknown column type \(c.name): \(t)") }
                     guard offset + sz <= data.count else { throw err("Unexpected EOF in column \(c.name)") }
-                    // Skipping numeric; if needed, parse here.
                     offset += sz
                 } else {
                     throw err("Column \(c.name) missing type")
@@ -181,11 +176,16 @@ class SDDSLoader: ObservableObject {
         }
 
         // 4) Select keys, trimming and avoiding duplicates
-        let selectedNames: Set<String> = [
+        let baseSelected: Set<String> = [
             "Current","ScheduledMode","ActualMode","TopupState","InjOperation",
             "ShutterStatus","UpdateTime","OPSMessage1","OPSMessage2",
             "OPSMessage3","OPSMessage4","OPSMessage5","Lifetime"
         ]
+
+        // Programmatically add ID1–ID35 and BM1–BM35 shutter keys
+        let shutterKeys = Set((1...35).flatMap { ["ID\($0)ShutterClosed", "BM\($0)ShutterClosed"] })
+
+        let selectedNames = baseSelected.union(shutterKeys)
 
         guard let descs = columnData["Description"], let vals = columnData["ValueString"] else {
             print("Missing Description or ValueString. Available: \(Array(columnData.keys))")

@@ -3,7 +3,7 @@ import SwiftUI
 struct SDDSStatusView: View {
     @StateObject private var loader = SDDSLoader()
 
-    // Map SDDS Description -> Friendly label
+    // Map SDDS Description -> Friendly label (static entries)
     private let displayName: [String: String] = [
         "ScheduledMode":  "Scheduled Mode",
         "ActualMode":     "Actual Mode",
@@ -35,16 +35,34 @@ struct SDDSStatusView: View {
         "OPSMessage4", // Last Dump/Trip
         "OPSMessage5", // Problem Info
         "UpdateTime"
+        // NOTE: ShutterClosed keys (IDxx/BMxx) will be placed after UpdateTime by custom rank()
     ]
 
     private var keyRank: [String: Int] {
         Dictionary(uniqueKeysWithValues: orderByKey.enumerated().map { ($1, $0) })
     }
 
+    // Place IDxxShutterClosed/BMxxShutterClosed right after UpdateTime; others default to end.
+    private func rank(for key: String) -> Int {
+        if let r = keyRank[key] { return r }
+        if (key.hasPrefix("ID") || key.hasPrefix("BM")) && key.hasSuffix("ShutterClosed") {
+            return (keyRank["UpdateTime"] ?? 0) + 1
+        }
+        return Int.max
+    }
+
+    private func friendlyName(for key: String) -> String {
+        // Show IDxx or BMxx by removing "ShutterClosed"
+        if (key.hasPrefix("ID") || key.hasPrefix("BM")) && key.hasSuffix("ShutterClosed") {
+            return key.replacingOccurrences(of: "ShutterClosed", with: "")
+        }
+        return displayName[key] ?? key
+    }
+
     private var sortedItems: [(description: String, value: String)] {
         loader.extractedData.sorted { a, b in
-            let ia = keyRank[a.description] ?? Int.max
-            let ib = keyRank[b.description] ?? Int.max
+            let ia = rank(for: a.description)
+            let ib = rank(for: b.description)
             if ia != ib { return ia < ib }
             return a.description < b.description
         }
@@ -63,11 +81,11 @@ struct SDDSStatusView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             ForEach(sortedItems, id: \.description) { item in
                                 HStack {
-                                    Text((displayName[item.description] ?? item.description) + ":")
+                                    Text(friendlyName(for: item.description) + ":")
                                         .fontWeight(.semibold)
                                     Spacer()
-                                    
-                                    // ✅ Color "Current" value based on threshold
+
+                                    // Color "Current" value based on threshold
                                     if item.description == "Current",
                                        let currentValue = Double(item.value) {
                                         Text(item.value)
@@ -78,7 +96,7 @@ struct SDDSStatusView: View {
                                     }
                                 }
                                 Divider()
-                                
+
                                 // Separator after "Fill Pattern"
                                 if item.description == "OPSMessage3" {
                                     Rectangle()
