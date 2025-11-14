@@ -35,32 +35,59 @@ struct SDDSStatusView: View {
         "OPSMessage4", // Last Dump/Trip
         "OPSMessage5", // Problem Info
         "UpdateTime"
-        // NOTE: ShutterClosed keys (IDxx/BMxx) will be placed after UpdateTime by custom rank()
+        // ShutterClosed keys (IDxx/BMxx) are placed after UpdateTime by custom ranking
     ]
 
     private var keyRank: [String: Int] {
         Dictionary(uniqueKeysWithValues: orderByKey.enumerated().map { ($1, $0) })
     }
 
-    // Place IDxxShutterClosed/BMxxShutterClosed right after UpdateTime; others default to end.
+    // Compute a precise position for shutter keys:
+    // BM1, ID1, BM2, ID2, ..., BM35, ID35 (all after UpdateTime).
+    private func shutterPosition(for key: String) -> Int? {
+        guard (key.hasPrefix("BM") || key.hasPrefix("ID")),
+              key.hasSuffix("ShutterClosed") else { return nil }
+
+        let prefix = String(key.prefix(2)) // "BM" or "ID"
+        let numberPart = key.dropFirst(2).replacingOccurrences(of: "ShutterClosed", with: "")
+        guard let n = Int(numberPart), n >= 1 else { return nil }
+
+        // Base immediately after UpdateTime
+        let base = (keyRank["UpdateTime"] ?? 0) + 1
+        // BMn first, then IDn
+        let offset = (n - 1) * 2 + (prefix == "BM" ? 0 : 1)
+        return base + offset
+    }
+
     private func rank(for key: String) -> Int {
         if let r = keyRank[key] { return r }
-        if (key.hasPrefix("ID") || key.hasPrefix("BM")) && key.hasSuffix("ShutterClosed") {
-            return (keyRank["UpdateTime"] ?? 0) + 1
-        }
+        if let sp = shutterPosition(for: key) { return sp }
         return Int.max
+    }
+
+    private func isShutterKey(_ key: String) -> Bool {
+        (key.hasPrefix("ID") || key.hasPrefix("BM")) && key.hasSuffix("ShutterClosed")
     }
 
     private func friendlyName(for key: String) -> String {
         // Show IDxx or BMxx by removing "ShutterClosed"
-        if (key.hasPrefix("ID") || key.hasPrefix("BM")) && key.hasSuffix("ShutterClosed") {
+        if isShutterKey(key) {
             return key.replacingOccurrences(of: "ShutterClosed", with: "")
         }
         return displayName[key] ?? key
     }
 
     private var sortedItems: [(description: String, value: String)] {
-        loader.extractedData.sorted { a, b in
+        // Filter out BM/ID shutters that are "_NoConnection_"
+        let filtered = loader.extractedData.filter { item in
+            if isShutterKey(item.description) {
+                let v = item.value.trimmingCharacters(in: .whitespacesAndNewlines)
+                return v != "_NoConnection_"
+            }
+            return true
+        }
+
+        return filtered.sorted { a, b in
             let ia = rank(for: a.description)
             let ib = rank(for: b.description)
             if ia != ib { return ia < ib }
