@@ -178,3 +178,5 @@ auto_positions.sav*
 .config
 
 .iocsh_history
+*.csv
+out.txt
