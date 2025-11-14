@@ -1,18 +1,18 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State private var selection = 0
+
     var body: some View {
-        TabView {
+        TabView(selection: $selection) {
             StatusImagesView()
-                .tabItem {
-                    Label("Status", systemImage: "photo.on.rectangle")
-                }
+                .tag(0)
 
             SDDSStatusView()
-                .tabItem {
-                    Label("Machine", systemImage: "waveform.path.ecg")
-                }
+                .tag(1)
         }
+        // iOS 14+ syntax to make it swipeable pages and hide dots
+        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
     }
 }
 
