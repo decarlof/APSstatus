@@ -1,8 +1,10 @@
 import SafariServices
+import SwiftUI  // add this
 
 class MainViewController: UIViewController {
 
     var preferences: UserDefaults = .standard
+    private var hostingController: UIHostingController<ContentView>?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -19,15 +21,23 @@ class MainViewController: UIViewController {
     }
 
     func setupMainUI() {
-        let label = UILabel()
-        label.text = "APSStatus (converted)"
-        label.font = UIFont.systemFont(ofSize: 24, weight: .semibold)
-        label.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(label)
+        // Host your SwiftUI ContentView (which contains all pages)
+        let swiftUIView = ContentView() // ensure ContentView includes your new SDDSAllParamsView pages
+        let hosting = UIHostingController(rootView: swiftUIView)
+
+        addChild(hosting)
+        hosting.view.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(hosting.view)
+
         NSLayoutConstraint.activate([
-            label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            label.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+            hosting.view.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            hosting.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            hosting.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            hosting.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+
+        hosting.didMove(toParent: self)
+        self.hostingController = hosting
     }
 
     @objc func showAbout() {

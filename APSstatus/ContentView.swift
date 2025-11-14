@@ -10,9 +10,21 @@ struct ContentView: View {
 
             SDDSStatusView()
                 .tag(1)
+
+            // New pages from the same base URL
+            SDDSAllParamsView(
+                urlString: "https://ops.aps.anl.gov/sddsStatus/SrVacStatus.sdds.gz",
+                title: "SR Vacuum"
+            )
+            .tag(2)
+
+            SDDSAllParamsView(
+                urlString: "https://ops.aps.anl.gov/sddsStatus/SCU0.sdds.gz",
+                title: "SCU0"
+            )
+            .tag(3)
         }
-        // iOS 14+ syntax to make it swipeable pages and hide dots
-        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never)) // swipeable pages, no bottom tabs
     }
 }
 
