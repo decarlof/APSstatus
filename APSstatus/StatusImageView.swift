@@ -6,6 +6,8 @@ struct StatusImagesView: View {
         "https://www3.aps.anl.gov/aod/blops/plots/WeekHistory.png"
     ]
     
+    @State private var refreshID = UUID() // forces view rebuild on refresh
+
     var body: some View {
         NavigationStack {
             VStack {
@@ -39,6 +41,12 @@ struct StatusImagesView: View {
                         }
                     }
                     .padding()
+                    .id(refreshID) // rebuild content to trigger AsyncImage reload
+                }
+                .refreshable {
+                    // Clear cache and force reload of AsyncImage
+                    URLCache.shared.removeAllCachedResponses()
+                    refreshID = UUID()
                 }
                 
                 HStack {
@@ -50,6 +58,7 @@ struct StatusImagesView: View {
                 .padding(.bottom)
             }
             .navigationTitle("APS Status")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }

@@ -114,92 +114,89 @@ struct SDDSStatusView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading) {
-                if loader.extractedData.isEmpty {
-                    Text(loader.statusText)
-                        .foregroundColor(.gray)
-                        .padding()
-                        .onAppear { loader.fetchStatus() }
-                } else {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 8) {
-                            // Standard list items (non-shutter)
-                            ForEach(nonShutterItems, id: \.description) { item in
-                                HStack {
-                                    Text((displayName[item.description] ?? item.description) + ":")
-                                        .fontWeight(.semibold)
-                                    Spacer()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 8) {
+                    if loader.extractedData.isEmpty {
+                        Text(loader.statusText)
+                            .foregroundColor(.gray)
+                            .padding()
+                            .onAppear { loader.fetchStatus() }
+                    } else {
+                        // Standard list items (non-shutter)
+                        ForEach(nonShutterItems, id: \.description) { item in
+                            HStack {
+                                Text((displayName[item.description] ?? item.description) + ":")
+                                    .fontWeight(.semibold)
+                                Spacer()
 
-                                    // Color "Current" value based on threshold
-                                    if item.description == "Current",
-                                       let currentValue = Double(item.value) {
-                                        Text(item.value)
-                                            .foregroundColor(currentValue > 100 ? .green : .red)
-                                            .fontWeight(.bold)
-                                    } else {
-                                        Text(item.value)
-                                    }
-                                }
-                                Divider()
-
-                                // Separator after "Fill Pattern"
-                                if item.description == "OPSMessage3" {
-                                    Rectangle()
-                                        .fill(Color.gray.opacity(0.4))
-                                        .frame(height: 2)
-                                        .padding(.vertical, 4)
+                                // Color "Current" value based on threshold
+                                if item.description == "Current",
+                                   let currentValue = Double(item.value) {
+                                    Text(item.value)
+                                        .foregroundColor(currentValue > 100 ? .green : .red)
+                                        .fontWeight(.bold)
+                                } else {
+                                    Text(item.value)
                                 }
                             }
+                            Divider()
 
-                            // Shutter grid (BM/ID rectangles)
-                            if !shutterItemsOrdered.isEmpty {
-                                // 6 columns; rows will wrap automatically
-                                let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 6)
-
-                                // Optional section divider above the grid
+                            // Separator after "Fill Pattern"
+                            if item.description == "OPSMessage3" {
                                 Rectangle()
                                     .fill(Color.gray.opacity(0.4))
                                     .frame(height: 2)
-                                    .padding(.vertical, 6)
-
-                                LazyVGrid(columns: columns, spacing: 8) {
-                                    ForEach(shutterItemsOrdered, id: \.description) { item in
-                                        let label = friendlyName(for: item.description)
-                                        let color = shutterColor(for: item.value)
-
-                                        ZStack {
-                                            RoundedRectangle(cornerRadius: 6)
-                                                .fill(color)
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 6)
-                                                        .stroke(Color.black.opacity(0.2), lineWidth: 1)
-                                                )
-
-                                            Text(label)
-                                                .font(.caption)
-                                                .fontWeight(.semibold)
-                                                .foregroundColor(.white)
-                                                .lineLimit(1)
-                                                .minimumScaleFactor(0.8)
-                                        }
-                                        .frame(height: 34) // identical height; width set by grid column
-                                        .accessibilityLabel("\(label) \(item.value)")
-                                    }
-                                }
-                                .padding(.top, 4)
+                                    .padding(.vertical, 4)
                             }
                         }
-                        .padding()
+
+                        // Shutter grid (BM/ID rectangles)
+                        if !shutterItemsOrdered.isEmpty {
+                            // 6 columns; rows will wrap automatically
+                            let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 6)
+
+                            Rectangle()
+                                .fill(Color.gray.opacity(0.4))
+                                .frame(height: 2)
+                                .padding(.vertical, 6)
+
+                            LazyVGrid(columns: columns, spacing: 8) {
+                                ForEach(shutterItemsOrdered, id: \.description) { item in
+                                    let label = friendlyName(for: item.description)
+                                    let color = shutterColor(for: item.value)
+
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .fill(color)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 6)
+                                                    .stroke(Color.black.opacity(0.2), lineWidth: 1)
+                                            )
+
+                                        Text(label)
+                                            .font(.caption)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.white)
+                                            .lineLimit(1)
+                                            .minimumScaleFactor(0.8)
+                                    }
+                                    .frame(height: 34) // identical height; width set by grid column
+                                    .accessibilityLabel("\(label) \(item.value)")
+                                }
+                            }
+                            .padding(.top, 4)
+                        }
                     }
                 }
+                .padding()
+            }
+            // Pull-to-refresh
+            .refreshable {
+                // Triggers network reload; fetchStatus manages its own async Task
+                loader.fetchStatus()
             }
             .navigationTitle("APS Status")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Refresh") { loader.fetchStatus() }
-                }
-            }
         }
     }
 }
