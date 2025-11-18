@@ -189,7 +189,17 @@ func parseMainStatusItems(_ data: Data) throws -> [(description: String, value: 
         "ShutterStatus","UpdateTime","OPSMessage1","OPSMessage2",
         "OPSMessage3","OPSMessage4","OPSMessage5","Lifetime"
     ]
-    let shutterKeys = Set((1...35).flatMap { ["ID\($0)ShutterClosed", "BM\($0)ShutterClosed"] })
+//    let shutterKeys = Set((1...35).flatMap { ["ID\($0)ShutterClosed", "BM\($0)ShutterClosed"] })
+
+    // Include both padded (BM01/ID01) and non-padded (BM1/ID1) shutter keys
+    let shutterKeys: Set<String> = Set((1...35).flatMap { i -> [String] in
+        let p = String(format: "%02d", i)
+        return [
+            "ID\(i)ShutterClosed",  "BM\(i)ShutterClosed",   // non-padded
+            "ID\(p)ShutterClosed",  "BM\(p)ShutterClosed"    // zero-padded
+        ]
+    })
+    
     let selectedNames = baseSelected.union(shutterKeys)
 
     guard let descs = columnData["Description"], let vals = columnData["ValueString"] else {
