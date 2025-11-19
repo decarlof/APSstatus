@@ -3,7 +3,7 @@ import Combine
 import Gzip
 
 @MainActor
-class SDDSLoader: ObservableObject {
+class SDDSStatusLoader: ObservableObject {
     @Published var statusText: String = "Loading…"
     @Published var extractedData: [(description: String, value: String)] = []
 

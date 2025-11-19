@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SDDSStatusView: View {
-    @StateObject private var loader = SDDSLoader()
+    @StateObject private var loader = SDDSStatusLoader()
 
     // Map SDDS Description -> Friendly label (static entries)
     private let displayName: [String: String] = [
