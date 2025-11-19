@@ -9,7 +9,7 @@ struct AboutView: View {
                 .font(.title3)
                 .foregroundColor(.secondary)
             
-            Text("Author: Francesco De Carlo\nOriginally developed by Robert Soliday.\nThis is the SwiftUI converted version.")
+            Text("Author: Francesco De Carlo\nOriginally developed by Robert Soliday and Michael Borland for Android.")
                 .multilineTextAlignment(.center)
                 .padding()
             
