@@ -13,20 +13,20 @@ struct ContentView: View {
     private let sddsPages: [(file: String, title: String)] = [
         // Already-added examples
         ("SrVacStatus.sdds.gz",    "SR Vacuum"),
-        ("SCU0.sdds.gz",           "SCU0"),
+        // ("SCU0.sdds.gz",           "SCU0"),
         ("SrRfSummary.sdds.gz",    "SR RF Summary"),
-        ("SCU1.sdds.gz",           "SCU1"),
+        // ("SCU1.sdds.gz",           "SCU1"),
         ("SrPsStatus.sdds.gz",     "SR PS Status"),
-        ("HSCU7.sdds.gz",          "HSCU7"),
+        // ("HSCU7.sdds.gz",          "HSCU7"),
         ("SRKlystronData.sdds.gz", "SR Klystron Data"),
-        ("IEXData.sdds.gz",        "IEX Data"),
+        // ("IEXData.sdds.gz",        "IEX Data"),
         ("PssData.sdds.gz",        "PSS Data"),
         ("FeepsData.sdds.gz",      "FEEPS Data"),
-        ("LNDSData.sdds.gz",       "LNDS Data"),
-        ("MpsData.sdds.gz",        "MPS Data"),
-        ("SrPsSummary.sdds.gz",    "SR PS Summary"),
-        ("mainSummary.sdds.gz",    "Main Summary"),
-        ("mainSummaryBig1.sdds.gz","Main Summary Big1")
+        // ("LNDSData.sdds.gz",       "LNDS Data"),
+        // ("MpsData.sdds.gz",        "MPS Data"),
+        // ("SrPsSummary.sdds.gz",    "SR PS Summary"),
+        // ("mainSummary.sdds.gz",    "Main Summary"),
+        // ("mainSummaryBig1.sdds.gz","Main Summary Big1")
     ]
 
     var body: some View {
