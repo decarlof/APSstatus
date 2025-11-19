@@ -1,54 +1,16 @@
+//
+//  SDDSParser.swift
+//  APSstatus
+//
+//  Created by Francesco De Carlo on 11/18/25.
+//
+
 import Foundation
-import Combine
-import Gzip
 
-@MainActor
-final class SDDSAllParamsLoader: ObservableObject {
-    @Published var statusText: String = "Loading…"
-    @Published var items: [(description: String, value: String)] = []
-
-    private let urlString: String
-
-    init(urlString: String) {
-        self.urlString = urlString
-    }
-
-    func fetchStatus() {
-        guard let url = URL(string: urlString) else {
-            statusText = "Invalid URL"
-            return
-        }
-
-        Task {
-            do {
-                let (compressedData, response) = try await URLSession.shared.data(from: url)
-                if let http = response as? HTTPURLResponse, http.statusCode != 200 {
-                    statusText = "Failed to download (status \(http.statusCode))"
-                    return
-                }
-
-                // Decompress + parse off the main thread
-                let parsedItems = try await Task.detached(priority: .userInitiated) { () -> [(String, String)] in
-                    let decompressed = try compressedData.gunzipped()
-                    // Fully qualified call to nonisolated static method
-                    return try SDDSAllParamsLoader.parseAllParams(decompressed)
-                }.value
-
-                // Publish on main actor
-                self.items = parsedItems
-                self.statusText = "Loaded SDDS (\(parsedItems.count) items)"
-            } catch {
-                self.statusText = "Error: \(error.localizedDescription)"
-                print("Detailed error: \(error)")
-            }
-        }
-    }
-
-    // MARK: - Nonisolated parser (safe to call from Task.detached)
-    nonisolated static func parseAllParams(_ data: Data) throws -> [(description: String, value: String)] {
+enum SDDSParser {
+    static func parseMainStatusItems(_ data: Data) throws -> [(description: String, value: String)] {
         var offset = 0
 
-        // Read header lines until &data
         var headerLines: [String] = []
         while offset < data.count {
             guard let nl = data[offset...].firstIndex(of: 0x0A) else { break }
@@ -62,7 +24,16 @@ final class SDDSAllParamsLoader: ObservableObject {
         }
 
         struct Def { let name: String; let type: String? }
-
+        func extractDefs(prefix: String) -> [Def] {
+            var defs: [Def] = []
+            for line in headerLines {
+                if !line.lowercased().hasPrefix(prefix) { continue }
+                let name = extractAttr(from: line, key: "name")
+                let type = extractAttr(from: line, key: "type")?.lowercased()
+                defs.append(Def(name: name ?? "", type: type))
+            }
+            return defs
+        }
         func extractAttr(from line: String, key: String) -> String? {
             guard let r = line.range(of: "\(key)=", options: .caseInsensitive) else { return nil }
             var s = String(line[r.upperBound...]).trimmingCharacters(in: .whitespaces)
@@ -80,32 +51,16 @@ final class SDDSAllParamsLoader: ObservableObject {
             return nil
         }
 
-        func extractDefs(prefix: String) -> [Def] {
-            var defs: [Def] = []
-            for line in headerLines {
-                if !line.lowercased().hasPrefix(prefix) { continue }
-                let name = extractAttr(from: line, key: "name")
-                let type = extractAttr(from: line, key: "type")?.lowercased()
-                defs.append(Def(name: name ?? "", type: type))
-            }
-            return defs
-        }
-
-        func err(_ msg: String) -> NSError {
-            NSError(domain: "SDDSAllParamsLoader", code: -1, userInfo: [NSLocalizedDescriptionKey: msg])
-        }
-
         let params  = extractDefs(prefix: "&parameter")
         let arrays  = extractDefs(prefix: "&array")
         let columns = extractDefs(prefix: "&column")
 
-        guard !columns.isEmpty else {
-            throw NSError(domain: "SDDSAllParamsLoader", code: 100, userInfo: [NSLocalizedDescriptionKey: "No columns found"])
-        }
+        guard !columns.isEmpty else { throw err("No columns found") }
 
+        // Skip whitespace
         while offset < data.count, [0x20, 0x09, 0x0A, 0x0D].contains(data[offset]) { offset += 1 }
 
-        // nrows (Int32 LE)
+        // Number of rows
         guard offset + 4 <= data.count else { throw err("Cannot read nrows") }
         let nrows: Int32 = data.withUnsafeBytes { $0.loadUnaligned(fromByteOffset: offset, as: Int32.self) }
         offset += 4
@@ -117,7 +72,6 @@ final class SDDSAllParamsLoader: ObservableObject {
             offset += 4
             return v
         }
-
         func readString() throws -> String {
             let L = try readI32()
             guard L >= 0, offset + Int(L) <= data.count else { throw err("Invalid string length \(L)") }
@@ -125,7 +79,6 @@ final class SDDSAllParamsLoader: ObservableObject {
             offset += Int(L)
             return s
         }
-
         func skipNumericBytes(for type: String) throws {
             let sizeMap: [String: Int] = [
                 "double": 8, "float": 4, "long": 4, "short": 2,
@@ -168,7 +121,7 @@ final class SDDSAllParamsLoader: ObservableObject {
             }
         }
 
-        // Rows
+        // Columns
         var columnData: [String: [String]] = [:]
         for c in columns { columnData[c.name] = [] }
 
@@ -192,15 +145,44 @@ final class SDDSAllParamsLoader: ObservableObject {
             }
         }
 
-        guard let descs = columnData["Description"], let vals = columnData["ValueString"] else {
+        // Filter desired rows
+        let baseSelected: Set<String> = [
+            "Current","ScheduledMode","ActualMode","TopupState","InjOperation",
+            "ShutterStatus","UpdateTime","OPSMessage1","OPSMessage2",
+            "OPSMessage3","OPSMessage4","OPSMessage5","Lifetime"
+        ]
+
+        // Include both padded (BM01/ID01) and non-padded (BM1/ID1) shutter keys
+        let shutterKeys: Set<String> = Set((1...35).flatMap { i -> [String] in
+            let p = String(format: "%02d", i)
+            return [
+                "ID\(i)ShutterClosed",  "BM\(i)ShutterClosed",
+                "ID\(p)ShutterClosed",  "BM\(p)ShutterClosed"
+            ]
+        })
+        let selectedNames = baseSelected.union(shutterKeys)
+
+        guard
+            let descs = columnData["Description"],
+            let vals  = columnData["ValueString"]
+        else {
             throw err("Missing Description or ValueString")
         }
 
+        var found = Set<String>()
         var results: [(String, String)] = []
-        for i in 0..<descs.count {
-            results.append((descs[i].trimmingCharacters(in: .whitespacesAndNewlines), vals[i]))
+        for (i, d) in descs.enumerated() {
+            let key = d.trimmingCharacters(in: .whitespacesAndNewlines)
+            if selectedNames.contains(key), !found.contains(key) {
+                results.append((key, vals[i]))
+                found.insert(key)
+            }
         }
 
         return results
+    }
+
+    private static func err(_ msg: String) -> NSError {
+        NSError(domain: "SDDSStatusLoader", code: -1, userInfo: [NSLocalizedDescriptionKey: msg])
     }
 }

@@ -3,7 +3,6 @@ import SwiftUI
 struct SDDSStatusView: View {
     @StateObject private var loader = SDDSStatusLoader()
 
-    // Map SDDS Description -> Friendly label (static entries)
     private let displayName: [String: String] = [
         "ScheduledMode":  "Scheduled Mode",
         "ActualMode":     "Actual Mode",
@@ -20,7 +19,6 @@ struct SDDSStatusView: View {
         "Lifetime":       "Lifetime"
     ]
 
-    // Desired order by ORIGINAL SDDS keys (Description)
     private let orderByKey = [
         "Current",
         "Lifetime",
@@ -29,17 +27,13 @@ struct SDDSStatusView: View {
         "ScheduledMode",
         "ActualMode",
         "ShutterStatus",
-        "OPSMessage3", // Fill Pattern
-        "OPSMessage1", // MCR Crew
-        "OPSMessage2", // Floor Coord
-        "OPSMessage4", // Last Dump/Trip
-        "OPSMessage5", // Problem Info
+        "OPSMessage3",
+        "OPSMessage1",
+        "OPSMessage2",
+        "OPSMessage4",
+        "OPSMessage5",
         "UpdateTime"
-        // ShutterClosed keys (IDxx/BMxx) will be displayed as a grid after UpdateTime
     ]
-
-    // Less-bright magenta to indicate X-rays in station (OFF/open shutter)
-    private let xrMagenta = Color(hue: 0.83, saturation: 0.55, brightness: 0.58)
 
     private var keyRank: [String: Int] {
         Dictionary(uniqueKeysWithValues: orderByKey.enumerated().map { ($1, $0) })
@@ -49,8 +43,6 @@ struct SDDSStatusView: View {
         (key.hasPrefix("ID") || key.hasPrefix("BM")) && key.hasSuffix("ShutterClosed")
     }
 
-    // BM1, ID1, BM2, ID2, ..., BM35, ID35 (ordered after UpdateTime base).
-    // This handles both zero-padded (BM01) and non-padded (BM1).
     private func shutterPosition(for key: String) -> Int? {
         guard (key.hasPrefix("BM") || key.hasPrefix("ID")),
               key.hasSuffix("ShutterClosed") else { return nil }
@@ -81,7 +73,6 @@ struct SDDSStatusView: View {
         return displayName[key] ?? key
     }
 
-    // Non-shutter items, sorted as before
     private var nonShutterItems: [(description: String, value: String)] {
         loader.extractedData
             .filter { !isShutterKey($0.description) }
@@ -93,7 +84,6 @@ struct SDDSStatusView: View {
             }
     }
 
-    // Shutter items (BM/ID), filtered and ordered BM1, ID1, ..., BM35, ID35
     private var shutterItemsOrdered: [(description: String, value: String)] {
         loader.extractedData
             .filter { item in
@@ -109,14 +99,11 @@ struct SDDSStatusView: View {
             }
     }
 
-    // Shutter color: ON -> green, OFF -> magenta
-    // Note the logic ON/OFF is flipped. ON = shutter closes, OFF = shutter open
-    // this was done to maintain compatibility withe Android version using the same mainStatus.sdds.gz file
     private func shutterColor(for value: String) -> Color {
         let v = value.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         switch v {
         case "ON":  return .green
-        case "OFF": return Color(red: 0.9, green: 0.0, blue: 0.9) // magenta
+        case "OFF": return Color(red: 0.9, green: 0.0, blue: 0.9)
         default:    return .gray.opacity(0.5)
         }
     }
@@ -131,14 +118,12 @@ struct SDDSStatusView: View {
                             .padding()
                             .onAppear { loader.fetchStatus() }
                     } else {
-                        // Non-shutter list, enumerated so we can avoid trailing divider
                         ForEach(Array(nonShutterItems.enumerated()), id: \.element.description) { idx, item in
                             HStack {
                                 Text((displayName[item.description] ?? item.description) + ":")
                                     .fontWeight(.semibold)
                                 Spacer()
 
-                                // Color "Current" value based on threshold
                                 if item.description == "Current",
                                    let currentValue = Double(item.value) {
                                     Text(item.value)
@@ -149,12 +134,10 @@ struct SDDSStatusView: View {
                                 }
                             }
 
-                            // Draw divider only between rows, not after the last one
                             if idx < nonShutterItems.count - 1 {
                                 Divider()
                             }
 
-                            // Special thicker separator after "Fill Pattern" if desired
                             if item.description == "OPSMessage3" {
                                 Rectangle()
                                     .fill(Color.gray.opacity(0.4))
@@ -163,11 +146,9 @@ struct SDDSStatusView: View {
                             }
                         }
 
-                        // Shutter grid (BM/ID rectangles)
                         if !shutterItemsOrdered.isEmpty {
                             let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 6)
 
-                            // Single divider before the shutter section
                             Divider()
                                 .padding(.vertical, 6)
 

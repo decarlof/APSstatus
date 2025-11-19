@@ -1,51 +1,14 @@
+//
+//  SDDSAllParamsParser.swift
+//  APSstatus
+//
+//  Created by Francesco De Carlo on 11/18/25.
+//
+
 import Foundation
-import Combine
-import Gzip
 
-@MainActor
-final class SDDSAllParamsLoader: ObservableObject {
-    @Published var statusText: String = "Loading…"
-    @Published var items: [(description: String, value: String)] = []
-
-    private let urlString: String
-
-    init(urlString: String) {
-        self.urlString = urlString
-    }
-
-    func fetchStatus() {
-        guard let url = URL(string: urlString) else {
-            statusText = "Invalid URL"
-            return
-        }
-
-        Task {
-            do {
-                let (compressedData, response) = try await URLSession.shared.data(from: url)
-                if let http = response as? HTTPURLResponse, http.statusCode != 200 {
-                    statusText = "Failed to download (status \(http.statusCode))"
-                    return
-                }
-
-                // Decompress + parse off the main thread
-                let parsedItems = try await Task.detached(priority: .userInitiated) { () -> [(String, String)] in
-                    let decompressed = try compressedData.gunzipped()
-                    // Fully qualified call to nonisolated static method
-                    return try SDDSAllParamsLoader.parseAllParams(decompressed)
-                }.value
-
-                // Publish on main actor
-                self.items = parsedItems
-                self.statusText = "Loaded SDDS (\(parsedItems.count) items)"
-            } catch {
-                self.statusText = "Error: \(error.localizedDescription)"
-                print("Detailed error: \(error)")
-            }
-        }
-    }
-
-    // MARK: - Nonisolated parser (safe to call from Task.detached)
-    nonisolated static func parseAllParams(_ data: Data) throws -> [(description: String, value: String)] {
+enum SDDSAllParamsParser {
+    static func parseAllParamsItems(_ data: Data) throws -> [(description: String, value: String)] {
         var offset = 0
 
         // Read header lines until &data
@@ -91,10 +54,6 @@ final class SDDSAllParamsLoader: ObservableObject {
             return defs
         }
 
-        func err(_ msg: String) -> NSError {
-            NSError(domain: "SDDSAllParamsLoader", code: -1, userInfo: [NSLocalizedDescriptionKey: msg])
-        }
-
         let params  = extractDefs(prefix: "&parameter")
         let arrays  = extractDefs(prefix: "&array")
         let columns = extractDefs(prefix: "&column")
@@ -103,6 +62,7 @@ final class SDDSAllParamsLoader: ObservableObject {
             throw NSError(domain: "SDDSAllParamsLoader", code: 100, userInfo: [NSLocalizedDescriptionKey: "No columns found"])
         }
 
+        // Skip whitespace
         while offset < data.count, [0x20, 0x09, 0x0A, 0x0D].contains(data[offset]) { offset += 1 }
 
         // nrows (Int32 LE)
@@ -202,5 +162,9 @@ final class SDDSAllParamsLoader: ObservableObject {
         }
 
         return results
+    }
+
+    private static func err(_ msg: String) -> NSError {
+        NSError(domain: "SDDSAllParamsLoader", code: -1, userInfo: [NSLocalizedDescriptionKey: msg])
     }
 }
