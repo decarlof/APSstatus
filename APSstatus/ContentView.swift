@@ -5,7 +5,7 @@ struct ContentView: View {
 
     // Existing SwiftUI pages
     private let staticPages: [AnyView] = [
-        AnyView(StatusImagesView()),
+        AnyView(WebStatusView()),
         AnyView(SDDSStatusView())
     ]
 
@@ -15,7 +15,7 @@ struct ContentView: View {
         ("SrVacStatus.sdds.gz",    "SR Vacuum"),
         // ("SCU0.sdds.gz",           "SCU0"),
         ("SrRfSummary.sdds.gz",    "SR RF Summary"),
-         ("PssData.sdds.gz",           "PSS"),
+        ("PssData.sdds.gz",           "PSS"),
         // ("SCU1.sdds.gz",           "SCU1"),
         ("SrPsStatus.sdds.gz",     "SR PS Status"),
         // ("HSCU7.sdds.gz",          "HSCU7"),

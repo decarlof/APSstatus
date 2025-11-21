@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct StatusImagesView: View {
+struct WebStatusView: View {
     private let imageURLs = [
         "https://www3.aps.anl.gov/asd/operations/gifplots/HDSRcomfort.png",
         "https://www3.aps.anl.gov/aod/blops/plots/WeekHistory.png"

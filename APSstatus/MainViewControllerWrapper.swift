@@ -19,3 +19,4 @@ struct MainViewControllerWrapper: UIViewControllerRepresentable {
         // Nothing to update dynamically
     }
 }
+
