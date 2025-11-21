@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct ContentView: View {
+struct SDDSAllView: View {
     private let baseURL = "https://ops.aps.anl.gov/sddsStatus/"
 
     // Existing SwiftUI pages
@@ -50,5 +50,5 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    SDDSAllView()
 }

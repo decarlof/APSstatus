@@ -4,7 +4,7 @@ import SwiftUI  // add this
 class MainViewController: UIViewController {
 
     var preferences: UserDefaults = .standard
-    private var hostingController: UIHostingController<ContentView>?
+    private var hostingController: UIHostingController<SDDSAllView>?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -21,8 +21,8 @@ class MainViewController: UIViewController {
     }
 
     func setupMainUI() {
-        // Host your SwiftUI ContentView (which contains all pages)
-        let swiftUIView = ContentView() // ensure ContentView includes your new SDDSAllParamsView pages
+        // Host your SwiftUI SDDSAllView (which contains all pages)
+        let swiftUIView = SDDSAllView() // ensure ContentView includes your new SDDSAllParamsView pages
         let hosting = UIHostingController(rootView: swiftUIView)
 
         addChild(hosting)

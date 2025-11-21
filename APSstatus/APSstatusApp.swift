@@ -7,7 +7,7 @@ struct APSStatusApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            SDDSAllView()
                 // Apply Dark or Light mode based on the preference
                 .preferredColorScheme(darkMode ? .dark : .light)
         }
