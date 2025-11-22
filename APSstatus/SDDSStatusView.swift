@@ -116,7 +116,9 @@ struct SDDSStatusView: View {
                         Text(loader.statusText)
                             .foregroundColor(.gray)
                             .padding()
-                            .onAppear { loader.fetchStatus() }
+                            .onAppear {
+                                loader.fetchStatus()  // also starts PSS loading internally
+                            }
                     } else {
                         ForEach(Array(nonShutterItems.enumerated()), id: \.element.description) { idx, item in
                             HStack {
@@ -169,12 +171,22 @@ struct SDDSStatusView: View {
                                                     .stroke(Color.black.opacity(0.2), lineWidth: 1)
                                             )
 
-                                        Text(label)
-                                            .font(.caption)
-                                            .fontWeight(.semibold)
-                                            .foregroundColor(.white)
-                                            .lineLimit(1)
-                                            .minimumScaleFactor(0.8)
+                                        HStack {
+                                            Text(label)
+                                                .font(.caption)
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(.white)
+                                                .lineLimit(1)
+                                                .minimumScaleFactor(0.8)
+
+                                            Spacer(minLength: 2)
+
+                                            // Beam-ready dot from PSS data
+                                            Circle()
+                                                .fill(loader.beamReadyDotColor(forShutterKey: item.description))
+                                                .frame(width: 8, height: 8)
+                                        }
+                                        .padding(.horizontal, 4)
                                     }
                                     .frame(height: 34)
                                     .accessibilityLabel("\(label) \(item.value)")
@@ -187,7 +199,7 @@ struct SDDSStatusView: View {
                 .padding()
             }
             .refreshable {
-                loader.fetchStatus()
+                loader.fetchStatus()  // will refresh both main and PSS data
             }
             .navigationTitle("APS Status")
             .navigationBarTitleDisplayMode(.inline)
