@@ -193,6 +193,34 @@ struct SDDSStatusView: View {
                                 }
                             }
                             .padding(.top, 4)
+                            // Dot color legend
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(spacing: 8) {
+                                    Circle()
+                                        .fill(Color.green)
+                                        .frame(width: 8, height: 8)
+                                    Text("Beam ready")
+                                        .font(.caption2)
+                                }
+                                HStack(spacing: 8) {
+                                    Circle()
+                                        .fill(Color.red)
+                                        .frame(width: 8, height: 8)
+                                    Text("Beam not ready")
+                                        .font(.caption2)
+                                }
+                                HStack(spacing: 8) {
+                                    Circle()
+                                        .fill(Color.black)
+                                        .frame(width: 8, height: 8)
+                                    Text("No PSS beam-ready info / not used")
+                                        .font(.caption2)
+                                }
+                            }
+                            .padding(.top, 6)
+                            
+                            
+                            
                         }
                     }
                 }

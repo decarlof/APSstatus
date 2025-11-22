@@ -76,6 +76,14 @@ final class SDDSStatusLoader: ObservableObject {
         }
         let numberString = String(numberPart)
 
+        // Special cases: BM06 and BM35 should always be black (bad/unused StaABeamreadyPl)
+        // This covers both "6"/"06" and "35"/"35" forms in the shutter key.
+        if prefix == "BM",
+           numberString == "6"  || numberString == "06" ||
+           numberString == "35" || numberString == "35" {
+            return .black
+        }
+
         guard let n = Int(numberString) else {
             return .black
         }
@@ -83,8 +91,8 @@ final class SDDSStatusLoader: ObservableObject {
         // Try both zero-padded and non-padded variants
         let padded = String(format: "%02d", n)
         let candidates = [
-            "\(prefix)\(padded)StaASearchedPl",
-            "\(prefix)\(n)StaASearchedPl"
+            "\(prefix)\(padded)StaABeamreadyPl",
+            "\(prefix)\(n)StaABeamreadyPl"
         ]
 
         for key in candidates {
@@ -100,7 +108,6 @@ final class SDDSStatusLoader: ObservableObject {
         // If we have no matching PSS entry, or unknown value
         return .black
     }
-
     // MARK: - Internal: load PssData and update beamReadyMap
 
     private func loadPssBeamReady() async {
