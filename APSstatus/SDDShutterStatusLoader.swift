@@ -4,10 +4,10 @@ import Gzip
 import SwiftUI
 
 @MainActor
-final class SDDSStatusLoader: ObservableObject {
+final class SDDSShutterStatusLoader: ObservableObject {
     @Published var statusText: String = "Loading…"
     @Published var extractedData: [(description: String, value: String)] = []
-
+    
     // Beam-ready map from PssData: Description -> ValueString ("ON"/"OFF"/...)
     @Published var beamReadyMap: [String: String] = [:]
 
@@ -34,7 +34,7 @@ final class SDDSStatusLoader: ObservableObject {
                 // Decompress + parse mainStatus off the main thread
                 let parsedItems = try await Task.detached(priority: .userInitiated) { () -> [(String, String)] in
                     let decompressed = try compressedData.gunzipped()
-                    return try SDDSStatusLoader.parseMainStatusItems(decompressed)
+                    return try SDDSShutterStatusLoader.parseMainStatusItems(decompressed)
                 }.value
 
                 // 2) In parallel, try to load PssData (beam ready info).
@@ -62,7 +62,9 @@ final class SDDSStatusLoader: ObservableObject {
 
     // MARK: - Helper for the UI: beam-ready dot color for a shutter key
 
-    func beamReadyDotColor(forShutterKey shutterKey: String) -> Color {
+    // UPDATED: now also depends on shutterValue (open/closed)
+    func beamReadyDotColor(forShutterKey shutterKey: String,
+                           shutterValue: String) -> Color {
         // shutterKey example: "BM01ShutterClosed", "ID7ShutterClosed"
         guard (shutterKey.hasPrefix("BM") || shutterKey.hasPrefix("ID")),
               shutterKey.hasSuffix("ShutterClosed") else {
@@ -77,37 +79,63 @@ final class SDDSStatusLoader: ObservableObject {
         let numberString = String(numberPart)
 
         // Special cases: BM06 and BM35 should always be black (bad/unused StaABeamreadyPl)
-        // This covers both "6"/"06" and "35"/"35" forms in the shutter key.
         if prefix == "BM",
            numberString == "6"  || numberString == "06" ||
            numberString == "35" || numberString == "35" {
-            return .black
+            return .yellow
         }
 
         guard let n = Int(numberString) else {
             return .black
         }
 
-        // Try both zero-padded and non-padded variants
+        // Determine if shutter is open or closed from shutterValue ("ON"/"OFF"/...)
+        // Assumption (consistent with your UI): "ON" = shutter CLOSED, "OFF" = shutter OPEN
+        let shutterState = shutterValue
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .uppercased()
+
+        // Try both zero-padded and non-padded variants for PSS map keys
         let padded = String(format: "%02d", n)
         let candidates = [
             "\(prefix)\(padded)StaABeamreadyPl",
             "\(prefix)\(n)StaABeamreadyPl"
         ]
 
+        // Read PSS beam-ready status
+        var pssRaw: String? = nil
         for key in candidates {
             if let raw = beamReadyMap[key]?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() {
-                switch raw {
-                case "ON":  return .green
-                case "OFF": return .red
-                default:    break
-                }
+                pssRaw = raw
+                break
             }
         }
 
-        // If we have no matching PSS entry, or unknown value
-        return .black
+        // No PSS entry → black dot (rule 4)
+        guard let pss = pssRaw else {
+            return .black
+        }
+
+        // If shutter is OPEN, dot uses same color as shutter open (magenta) – rule 1
+        if shutterState == "OFF" {
+            // Same color as shutterColor(for:) uses for "OFF"
+            return Color(red: 0.9, green: 0.0, blue: 0.9)
+        }
+
+        // Shutter is CLOSED → dot shows beam-ready state – rules 2 and 3
+        switch pss {
+        case "ON":
+            // Beam ready → green
+            return .green
+        case "OFF":
+            // Beam not ready → red
+            return .red
+        default:
+            // Unknown value → black
+            return .black
+        }
     }
+
     // MARK: - Internal: load PssData and update beamReadyMap
 
     private func loadPssBeamReady() async {
@@ -126,7 +154,7 @@ final class SDDSStatusLoader: ObservableObject {
             // Decompress + parse off main thread
             let beamMap = try await Task.detached(priority: .userInitiated) { () -> [String: String] in
                 let decompressed = try compressedData.gunzipped()
-                return try SDDSStatusLoader.parsePssBeamReadyItems(decompressed)
+                return try SDDSShutterStatusLoader.parsePssBeamReadyItems(decompressed)
             }.value
 
             // Update on main actor
@@ -484,4 +512,5 @@ final class SDDSStatusLoader: ObservableObject {
 
         return result
     }
+    
 }

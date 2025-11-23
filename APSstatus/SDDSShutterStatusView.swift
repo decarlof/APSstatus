@@ -1,8 +1,8 @@
 import SwiftUI
 
-struct SDDSStatusView: View {
-    @StateObject private var loader = SDDSStatusLoader()
-
+struct SDDSShutterStatusView: View {
+    @StateObject private var loader = SDDSShutterStatusLoader()
+    
     private let displayName: [String: String] = [
         "ScheduledMode":  "Scheduled Mode",
         "ActualMode":     "Actual Mode",
@@ -154,73 +154,105 @@ struct SDDSStatusView: View {
                             Divider()
                                 .padding(.vertical, 6)
 
-                            Text("Shutter status")
-                                .font(.headline)
-                                .padding(.bottom, 4)
+                            VStack(alignment: .leading, spacing: 4) {
+                                // Title + shutter state legend
+                                HStack(spacing: 12) {
+                                    Text("Shutter status")
+                                        .font(.headline)
 
-                            LazyVGrid(columns: columns, spacing: 8) {
-                                ForEach(shutterItemsOrdered, id: \.description) { item in
-                                    let label = friendlyName(for: item.description)
-                                    let color = shutterColor(for: item.value)
-
-                                    ZStack {
-                                        RoundedRectangle(cornerRadius: 6)
-                                            .fill(color)
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 6)
-                                                    .stroke(Color.black.opacity(0.2), lineWidth: 1)
-                                            )
-
-                                        HStack {
-                                            Text(label)
-                                                .font(.caption)
+                                    // Legend for shutter rectangles
+                                    HStack(spacing: 8) {
+                                        // OPEN (magenta)
+                                        ZStack {
+                                            RoundedRectangle(cornerRadius: 4)
+                                                .fill(Color(red: 0.9, green: 0.0, blue: 0.9))
+                                                .frame(width: 40, height: 18)
+                                            Text("open")
+                                                .font(.caption2)
                                                 .fontWeight(.semibold)
                                                 .foregroundColor(.white)
-                                                .lineLimit(1)
-                                                .minimumScaleFactor(0.8)
-
-                                            Spacer(minLength: 2)
-
-                                            // Beam-ready dot from PSS data
-                                            Circle()
-                                                .fill(loader.beamReadyDotColor(forShutterKey: item.description))
-                                                .frame(width: 8, height: 8)
                                         }
-                                        .padding(.horizontal, 4)
+
+                                        // CLOSED (green)
+                                        ZStack {
+                                            RoundedRectangle(cornerRadius: 4)
+                                                .fill(Color.green)
+                                                .frame(width: 50, height: 18)
+                                            Text("closed")
+                                                .font(.caption2)
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(.white)
+                                        }
                                     }
-                                    .frame(height: 34)
-                                    .accessibilityLabel("\(label) \(item.value)")
                                 }
+                                .padding(.bottom, 4)
+
+                                LazyVGrid(columns: columns, spacing: 8) {
+                                    ForEach(shutterItemsOrdered, id: \.description) { item in
+                                        let label = friendlyName(for: item.description)
+                                        let color = shutterColor(for: item.value)
+
+                                        ZStack {
+                                            RoundedRectangle(cornerRadius: 6)
+                                                .fill(color)
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 6)
+                                                        .stroke(Color.black.opacity(0.2), lineWidth: 1)
+                                                )
+
+                                            HStack {
+                                                Text(label)
+                                                    .font(.caption)
+                                                    .fontWeight(.semibold)
+                                                    .foregroundColor(.white)
+                                                    .lineLimit(1)
+                                                    .minimumScaleFactor(0.8)
+
+                                                Spacer(minLength: 2)
+
+                                                Circle()
+                                                    .fill(
+                                                        loader.beamReadyDotColor(
+                                                            forShutterKey: item.description,
+                                                            shutterValue: item.value
+                                                        )
+                                                    )
+                                                    .frame(width: 8, height: 8)
+                                            }
+                                            .padding(.horizontal, 4)
+                                        }
+                                        .frame(height: 34)
+                                        .accessibilityLabel("\(label) \(item.value)")
+                                    }
+                                }
+                                .padding(.top, 4)
                             }
-                            .padding(.top, 4)
-                            // Dot color legend
+
+                            // Your existing dot legend comes after this VStack, unchanged
                             VStack(alignment: .leading, spacing: 4) {
-                                HStack(spacing: 8) {
-                                    Circle()
-                                        .fill(Color.green)
-                                        .frame(width: 8, height: 8)
-                                    Text("Beam ready")
-                                        .font(.caption2)
-                                }
                                 HStack(spacing: 8) {
                                     Circle()
                                         .fill(Color.red)
                                         .frame(width: 8, height: 8)
-                                    Text("Beam not ready")
+                                    Text("Station not searched")
                                         .font(.caption2)
                                 }
                                 HStack(spacing: 8) {
                                     Circle()
                                         .fill(Color.black)
                                         .frame(width: 8, height: 8)
-                                    Text("No PSS beam-ready info / not used")
+                                    Text("New PSS PV names")
+                                        .font(.caption2)
+                                }
+                                HStack(spacing: 8) {
+                                    Circle()
+                                        .fill(Color.yellow)
+                                        .frame(width: 8, height: 8)
+                                    Text("No standard Beam read (StaABeamreadyPl) PV")
                                         .font(.caption2)
                                 }
                             }
                             .padding(.top, 6)
-                            
-                            
-                            
                         }
                     }
                 }
@@ -233,4 +265,5 @@ struct SDDSStatusView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
     }
+    
 }
