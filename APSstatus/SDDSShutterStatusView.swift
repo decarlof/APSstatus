@@ -248,7 +248,7 @@ struct SDDSShutterStatusView: View {
                                     Circle()
                                         .fill(Color.yellow)
                                         .frame(width: 8, height: 8)
-                                    Text("No standard Beam read (StaABeamreadyPl) PV")
+                                    Text("No standard Beam read (StaASearchedPl) PV")
                                         .font(.caption2)
                                 }
                             }

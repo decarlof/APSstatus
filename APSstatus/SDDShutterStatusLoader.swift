@@ -78,7 +78,7 @@ final class SDDSShutterStatusLoader: ObservableObject {
         }
         let numberString = String(numberPart)
 
-        // Special cases: BM06 and BM35 should always be black (bad/unused StaABeamreadyPl)
+        // Special cases: BM06 and BM35 should always be black (bad/unused StaASearchedPl)
         if prefix == "BM",
            numberString == "6"  || numberString == "06" ||
            numberString == "35" || numberString == "35" {
@@ -98,8 +98,8 @@ final class SDDSShutterStatusLoader: ObservableObject {
         // Try both zero-padded and non-padded variants for PSS map keys
         let padded = String(format: "%02d", n)
         let candidates = [
-            "\(prefix)\(padded)StaABeamreadyPl",
-            "\(prefix)\(n)StaABeamreadyPl"
+            "\(prefix)\(padded)StaASearchedPl",
+            "\(prefix)\(n)StaASearchedPl"
         ]
 
         // Read PSS beam-ready status
