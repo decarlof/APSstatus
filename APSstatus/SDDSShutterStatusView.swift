@@ -1,8 +1,7 @@
 import SwiftUI
 
-struct SDDSShutterStatusView: View {
-    @StateObject private var loader = SDDSShutterStatusLoader()
-    
+struct SDDSShutterStatusView: View { @ObservedObject var loader: SDDSShutterStatusLoader
+     
     private let displayName: [String: String] = [
         "ScheduledMode":  "Scheduled Mode",
         "ActualMode":     "Actual Mode",

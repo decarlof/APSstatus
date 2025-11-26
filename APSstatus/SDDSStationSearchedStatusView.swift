@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct SDDSStationSearchedStatusView: View { @StateObject private var loader = SDDSShutterStatusLoader()
+struct SDDSStationSearchedStatusView: View { @ObservedObject var loader: SDDSShutterStatusLoader
     
     enum StationStatus {
         case searched    // ON
