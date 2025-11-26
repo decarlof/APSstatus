@@ -67,12 +67,26 @@ struct SDDSShutterStatusView: View {
     }
 
     private func friendlyName(for key: String) -> String {
+        // For shutter keys like "BM01ShutterClosed" or "ID7ShutterClosed",
+        // convert to "01-BM", "07-ID", etc.
         if isShutterKey(key) {
-            return key.replacingOccurrences(of: "ShutterClosed", with: "")
+            let prefix = String(key.prefix(2)) // "BM" or "ID"
+            var numberPart = key.dropFirst(2)
+            if let r = numberPart.range(of: "ShutterClosed") {
+                numberPart = numberPart[..<r.lowerBound]
+            }
+            let rawNumber = String(numberPart).trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let n = Int(rawNumber) else {
+                // fallback: old behavior if parsing fails
+                return key.replacingOccurrences(of: "ShutterClosed", with: "")
+            }
+            let padded = String(format: "%02d", n)
+            return "\(padded)-\(prefix)"
         }
+
+        // Non-shutter keys use the displayName map or the raw key
         return displayName[key] ?? key
     }
-
     private var nonShutterItems: [(description: String, value: String)] {
         loader.extractedData
             .filter { !isShutterKey($0.description) }

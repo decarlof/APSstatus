@@ -6,7 +6,8 @@ struct SDDSAllView: View {
     // Existing SwiftUI pages
     private let staticPages: [AnyView] = [
         AnyView(WebStatusView()),
-        AnyView(SDDSShutterStatusView())
+        AnyView(SDDSShutterStatusView()),
+        AnyView(SDDSStationSearchedStatusView()),
     ]
 
     // New SDDS pages (filename, title)
