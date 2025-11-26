@@ -230,27 +230,24 @@ struct SDDSShutterStatusView: View {
 
                             // Your existing dot legend comes after this VStack, unchanged
                             VStack(alignment: .leading, spacing: 4) {
+                                // Station A NOT searched / NOT secure (shutter closed)
                                 HStack(spacing: 8) {
                                     Circle()
-                                        .fill(Color.red)
+                                        .fill(Color.orange)
                                         .frame(width: 8, height: 8)
-                                    Text("Station not searched")
+                                    Text("Station A not searched")
                                         .font(.caption2)
                                 }
-                                HStack(spacing: 8) {
-                                    Circle()
-                                        .fill(Color.black)
-                                        .frame(width: 8, height: 8)
-                                    Text("New PSS PV names")
-                                        .font(.caption2)
-                                }
-                                HStack(spacing: 8) {
-                                    Circle()
-                                        .fill(Color.yellow)
-                                        .frame(width: 8, height: 8)
-                                    Text("No standard Beam read (StaASearchedPl) PV")
-                                        .font(.caption2)
-                                }
+
+                                // for debug only
+                                // No Station A PSS PV found for this beamline
+//                                HStack(spacing: 8) {
+//                                    Circle()
+//                                        .fill(Color.black)
+//                                        .frame(width: 8, height: 8)
+//                                    Text("Station A PSS PV missing")
+//                                        .font(.caption2)
+//                                }
                             }
                             .padding(.top, 6)
                         }

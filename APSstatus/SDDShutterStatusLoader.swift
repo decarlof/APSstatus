@@ -61,8 +61,7 @@ final class SDDSShutterStatusLoader: ObservableObject {
     }
 
     // MARK: - Helper for the UI: beam-ready dot color for a shutter key
-
-    // UPDATED: now also depends on shutterValue (open/closed)
+    // Uses Station A status only (regardless of PSS generation).
     func beamReadyDotColor(forShutterKey shutterKey: String,
                            shutterValue: String) -> Color {
         // shutterKey example: "BM01ShutterClosed", "ID7ShutterClosed"
@@ -78,64 +77,70 @@ final class SDDSShutterStatusLoader: ObservableObject {
         }
         let numberString = String(numberPart)
 
-        // Special cases: BM06 and BM35 should always be black (bad/unused StaASearchedPl)
-        if prefix == "BM",
-           numberString == "6"  || numberString == "06" ||
-           numberString == "35" || numberString == "35" {
-            return .yellow
-        }
-
         guard let n = Int(numberString) else {
             return .black
         }
 
         // Determine if shutter is open or closed from shutterValue ("ON"/"OFF"/...)
-        // Assumption (consistent with your UI): "ON" = shutter CLOSED, "OFF" = shutter OPEN
+        // Assumption: "ON"  = shutter CLOSED
+        //             "OFF" = shutter OPEN
         let shutterState = shutterValue
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .uppercased()
 
-        // Try both zero-padded and non-padded variants for PSS map keys
-        let padded = String(format: "%02d", n)
-        let candidates = [
-            "\(prefix)\(padded)StaASearchedPl",
-            "\(prefix)\(n)StaASearchedPl"
-        ]
-
-        // Read PSS beam-ready status
-        var pssRaw: String? = nil
-        for key in candidates {
-            if let raw = beamReadyMap[key]?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() {
-                pssRaw = raw
-                break
-            }
+        // If the shutter is OPEN, dot is always magenta, regardless of PSS status
+        if shutterState == "OFF" {
+            // Same color you use for open shutters
+            return Color(red: 0.9, green: 0.0, blue: 0.9)
         }
 
-        // No PSS entry → black dot (rule 4)
+        // Shutter is CLOSED → dot color depends on Station A status.
+        // Try both zero-padded and non-padded variants for the prefix+number
+        // e.g., "BM01" and "BM1", "ID08" and "ID8".
+        let padded = String(format: "%02d", n)
+        let baseCandidates = [
+            "\(prefix)\(padded)",
+            "\(prefix)\(n)"
+        ]
+
+        // For each base (e.g. "BM01"), try all known Station A suffix forms,
+        // covering Gen 1, Gen 3, Gen 3.4, and Gen 4 PSS.
+        let stationASuffixes = [
+            "StaASearchedPl", // Gen 1
+            "ASearched",      // Gen 3
+            "StaASecureBm",   // Gen 3.4
+            "StaASecureM"     // Gen 4
+        ]
+
+        var pssRaw: String? = nil
+        for base in baseCandidates {
+            for suffix in stationASuffixes {
+                let key = base + suffix
+                if let raw = beamReadyMap[key]?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() {
+                    pssRaw = raw
+                    break
+                }
+            }
+            if pssRaw != nil { break }
+        }
+
+        // No PSS entry for Station A → black dot (missing search status)
         guard let pss = pssRaw else {
             return .black
         }
 
-        // If shutter is OPEN, dot uses same color as shutter open (magenta) – rule 1
-        if shutterState == "OFF" {
-            // Same color as shutterColor(for:) uses for "OFF"
-            return Color(red: 0.9, green: 0.0, blue: 0.9)
-        }
-
-        // Shutter is CLOSED → dot shows beam-ready state – rules 2 and 3
+        // Station A status:
+        // ON  -> searched / secure  -> green
+        // OFF -> not searched       -> orange
         switch pss {
         case "ON":
-            // Beam ready → green
             return .green
         case "OFF":
-            // Beam not ready → red
-            return .red
+            return .orange
         default:
-            // Unknown value → black
             return .black
         }
     }
-
     // MARK: - Internal: load PssData and update beamReadyMap
 
     private func loadPssBeamReady() async {
