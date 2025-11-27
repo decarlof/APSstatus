@@ -9,11 +9,10 @@ struct SDDSAllView: View { private let baseURL = "https://ops.aps.anl.gov/sddsSt
     private let sddsPages: [(file: String, title: String)] = [
         ("SrVacStatus.sdds.gz",    "SR Vacuum"),
         ("SrRfSummary.sdds.gz",    "SR RF Summary"),
-        ("PssData.sdds.gz",        "PSS"),
+        // ("PssData.sdds.gz",        "PSS"),
         ("SrPsStatus.sdds.gz",     "SR PS Status"),
         ("SRKlystronData.sdds.gz", "SR Klystron Data"),
-        ("PssData.sdds.gz",        "PSS Data"),
-        ("FeepsData.sdds.gz",      "FEEPS Data"),
+        // ("FeepsData.sdds.gz",      "FEEPS Data"),
     ]
     
     var body: some View {
@@ -27,6 +26,11 @@ struct SDDSAllView: View { private let baseURL = "https://ops.aps.anl.gov/sddsSt
             // Page 2: PSS station searched/secure status (new)
             SDDSStationSearchedStatusView(loader: loader)
             
+            // Page 3: Compact SR RF summary
+            SDDSRfCompactView(
+                urlString: baseURL + "SrRfSummary.sdds.gz",
+                title: "SR RF Summary"
+            )
             // Remaining SDDS parameter pages
             ForEach(sddsPages, id: \.file) { entry in
                 SDDSAllParamsView(

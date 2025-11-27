@@ -246,6 +246,7 @@ struct SDDSStationSearchedStatusView: View { @ObservedObject var loader: SDDSShu
                             .padding(.bottom, 4)
                             
                             // Beamline rows
+                            // Beamline rows
                             LazyVStack(alignment: .leading, spacing: 8) {
                                 ForEach(beamlineStations) { bl in
                                     HStack(alignment: .center, spacing: 8) {
@@ -259,32 +260,29 @@ struct SDDSStationSearchedStatusView: View { @ObservedObject var loader: SDDSShu
                                             .font(.headline)
                                             .frame(width: 60, alignment: .leading)
 
-                                        // Horizontal row of station boxes
-                                        ScrollView(.horizontal, showsIndicators: false) {
-                                            HStack(spacing: 6) {
-                                                ForEach(bl.stations) { station in
-                                                    ZStack {
-                                                        RoundedRectangle(cornerRadius: 4)
-                                                            .fill(color(for: station.status))
-                                                            .frame(height: 24)
+                                        // Row of station boxes (no horizontal ScrollView)
+                                        HStack(spacing: 6) {
+                                            ForEach(bl.stations) { station in
+                                                ZStack {
+                                                    RoundedRectangle(cornerRadius: 4)
+                                                        .fill(color(for: station.status))
+                                                        .frame(height: 24)
 
-                                                        Text(String(station.letter))
-                                                            .font(.caption)
-                                                            .fontWeight(.bold)
-                                                            .foregroundColor(.white)
-                                                    }
-                                                    .frame(width: 28, height: 24)
+                                                    Text(String(station.letter))
+                                                        .font(.caption)
+                                                        .fontWeight(.bold)
+                                                        .foregroundColor(.white)
                                                 }
+                                                .frame(width: 28, height: 24)
                                             }
                                         }
                                     }
                                     .padding(.vertical, 2)
-
                                 }
                             }
+                            }
+                            .padding()
                         }
-                        .padding()
-                    }
                 }
             }
             .navigationTitle("PSS Station Status")
