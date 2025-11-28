@@ -1,30 +1,13 @@
 import SwiftUI
 
-struct SDDSAllView: View { private let baseURL = "https://ops.aps.anl.gov/sddsStatus/"
-    
-//    https://ops.aps.anl.gov/sddsStatus/SrVacStatus.sdds.gz
-//    https://ops.aps.anl.gov/sddsStatus/mainStatus.sdds.gz
-//    https://ops.aps.anl.gov/sddsStatus/SCU0.sdds.gz
-//    https://ops.aps.anl.gov/sddsStatus/SrRfSummary.sdds.gz
-//    https://ops.aps.anl.gov/sddsStatus/SCU1.sdds.gz
-//    https://ops.aps.anl.gov/sddsStatus/SrPsStatus.sdds.gz
-//    https://ops.aps.anl.gov/sddsStatus/HSCU7.sdds.gz
-//    https://ops.aps.anl.gov/sddsStatus/SRKlystronData.sdds.gz
-//    https://ops.aps.anl.gov/sddsStatus/IEXData.sdds.gz
-//    https://ops.aps.anl.gov/sddsStatus/PssData.sdds.gz
-//    https://ops.aps.anl.gov/sddsStatus/FeepsData.sdds.gz
-//    https://ops.aps.anl.gov/sddsStatus/LNDSData.sdds.gz
-//    https://ops.aps.anl.gov/sddsStatus/MpsData.sdds.gz
-//    https://ops.aps.anl.gov/sddsStatus/SrPsSummary.sdds.gz
-//    https://ops.aps.anl.gov/sddsStatus/mainSummary.sdds.gz
-//    https://ops.aps.anl.gov/sddsStatus/mainSummaryBig1.sdds.gz
-    
-    
+struct SDDSAllView: View {
+    private let baseURL = "https://ops.aps.anl.gov/sddsStatus/"
     
     // Shared loader for APS status + PSS
     @StateObject private var loader = SDDSShutterStatusLoader()
     
     // SDDS parameter pages (filename, title)
+    // Note: I removed LNDSData.sdds.gz from here, since it now has its own custom view.
     private let sddsPages: [(file: String, title: String)] = [
         ("SrVacStatus.sdds.gz",    "SR Vacuum"),
         ("SrRfSummary.sdds.gz",    "SR RF Summary"),
@@ -32,6 +15,7 @@ struct SDDSAllView: View { private let baseURL = "https://ops.aps.anl.gov/sddsSt
         ("SrPsStatus.sdds.gz",     "SR PS Status"),
         ("SRKlystronData.sdds.gz", "SR Klystron Data"),
         // ("FeepsData.sdds.gz",      "FEEPS Data"),
+        // ("LNDSData.sdds.gz",       "LNDS Data"),  // <— keep commented/removed
     ]
     
     var body: some View {
@@ -42,7 +26,7 @@ struct SDDSAllView: View { private let baseURL = "https://ops.aps.anl.gov/sddsSt
             // Page 1: Shutter status / APS main status
             SDDSShutterStatusView(loader: loader)
             
-            // Page 2: PSS station searched/secure status (new)
+            // Page 2: PSS station searched/secure status
             SDDSStationSearchedStatusView(loader: loader)
             
             // Page 3: Compact SR RF summary
@@ -50,7 +34,14 @@ struct SDDSAllView: View { private let baseURL = "https://ops.aps.anl.gov/sddsSt
                 urlString: baseURL + "SrRfSummary.sdds.gz",
                 title: "SR RF Summary"
             )
-            // Remaining SDDS parameter pages
+            
+            // Page 4: APS LNDS Status
+            SDDSLNDSStatusView(
+                urlString: baseURL + "LNDSData.sdds.gz",
+                title: "APS LNDS Status"
+            )
+            
+            // Remaining SDDS parameter pages (generic viewer)
             ForEach(sddsPages, id: \.file) { entry in
                 SDDSAllParamsView(
                     urlString: baseURL + entry.file,
@@ -61,6 +52,7 @@ struct SDDSAllView: View { private let baseURL = "https://ops.aps.anl.gov/sddsSt
         .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never)) // swipe horizontally, no tab bar
     }
 }
+
 #Preview {
     SDDSAllView()
 }
