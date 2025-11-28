@@ -2,6 +2,25 @@ import SwiftUI
 
 struct SDDSAllView: View { private let baseURL = "https://ops.aps.anl.gov/sddsStatus/"
     
+//    https://ops.aps.anl.gov/sddsStatus/SrVacStatus.sdds.gz
+//    https://ops.aps.anl.gov/sddsStatus/mainStatus.sdds.gz
+//    https://ops.aps.anl.gov/sddsStatus/SCU0.sdds.gz
+//    https://ops.aps.anl.gov/sddsStatus/SrRfSummary.sdds.gz
+//    https://ops.aps.anl.gov/sddsStatus/SCU1.sdds.gz
+//    https://ops.aps.anl.gov/sddsStatus/SrPsStatus.sdds.gz
+//    https://ops.aps.anl.gov/sddsStatus/HSCU7.sdds.gz
+//    https://ops.aps.anl.gov/sddsStatus/SRKlystronData.sdds.gz
+//    https://ops.aps.anl.gov/sddsStatus/IEXData.sdds.gz
+//    https://ops.aps.anl.gov/sddsStatus/PssData.sdds.gz
+//    https://ops.aps.anl.gov/sddsStatus/FeepsData.sdds.gz
+//    https://ops.aps.anl.gov/sddsStatus/LNDSData.sdds.gz
+//    https://ops.aps.anl.gov/sddsStatus/MpsData.sdds.gz
+//    https://ops.aps.anl.gov/sddsStatus/SrPsSummary.sdds.gz
+//    https://ops.aps.anl.gov/sddsStatus/mainSummary.sdds.gz
+//    https://ops.aps.anl.gov/sddsStatus/mainSummaryBig1.sdds.gz
+    
+    
+    
     // Shared loader for APS status + PSS
     @StateObject private var loader = SDDSShutterStatusLoader()
     
