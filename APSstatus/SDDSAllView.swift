@@ -28,7 +28,7 @@ struct SDDSAllView: View {
     // Note: I removed LNDSData.sdds.gz from here, since it now has its own custom view.
     private let sddsPages: [(file: String, title: String)] = [
         ("SrVacStatus.sdds.gz",    "SR Vacuum"),
-        ("SrRfSummary.sdds.gz",    "SR RF Summary"),
+        // ("SrRfSummary.sdds.gz",    "SR RF Summary"),
         // ("PssData.sdds.gz",        "PSS"),
         ("SrPsStatus.sdds.gz",     "SR PS Status"),
         ("SRKlystronData.sdds.gz", "SR Klystron Data"),
@@ -52,18 +52,25 @@ struct SDDSAllView: View {
                 urlString: baseURL + "LNDSData.sdds.gz",
                 title: "APS LNDS Status"
             )
-            // Page 4: Compact SR RF summary
+            
+            // Page 4: SR Vacuum Status (new dedicated viewer)
+            SDDSVacuumStatusView(
+                urlString: baseURL + "SrVacStatus.sdds.gz",
+                title: "SR Vacuum Status"
+            )
+            
+            // Page 5: Compact SR RF summary
             SDDSRfCompactView(
                 urlString: baseURL + "SrRfSummary.sdds.gz",
                 title: "SR RF Summary"
             )
             
-            // Page 5: SR PS Status Detail
+            // Page 6: SR PS Status Detail
             SDDSSrPsStatusView(
                 urlString: baseURL + "SrPsStatus.sdds.gz",
                 title: "APS Storage Ring PS Status Detail"
             )
-
+            
             // Remaining SDDS parameter pages (generic viewer)
             ForEach(sddsPages, id: \.file) { entry in
                 SDDSAllParamsView(
