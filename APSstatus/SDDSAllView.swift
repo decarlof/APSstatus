@@ -5,6 +5,24 @@ struct SDDSAllView: View {
     
     // Shared loader for APS status + PSS
     @StateObject private var loader = SDDSShutterStatusLoader()
+
+    
+    //    https://ops.aps.anl.gov/sddsStatus/SrVacStatus.sdds.gz
+    //    https://ops.aps.anl.gov/sddsStatus/mainStatus.sdds.gz
+    //    https://ops.aps.anl.gov/sddsStatus/SCU0.sdds.gz
+    //    https://ops.aps.anl.gov/sddsStatus/SrRfSummary.sdds.gz
+    //    https://ops.aps.anl.gov/sddsStatus/SCU1.sdds.gz             // <— not connected
+    //    https://ops.aps.anl.gov/sddsStatus/SrPsStatus.sdds.gz
+    //    https://ops.aps.anl.gov/sddsStatus/HSCU7.sdds.gz
+    //    https://ops.aps.anl.gov/sddsStatus/SRKlystronData.sdds.gz
+    //    https://ops.aps.anl.gov/sddsStatus/IEXData.sdds.gz
+    //    https://ops.aps.anl.gov/sddsStatus/PssData.sdds.gz
+    //    https://ops.aps.anl.gov/sddsStatus/FeepsData.sdds.gz
+    //    https://ops.aps.anl.gov/sddsStatus/LNDSData.sdds.gz
+    //    https://ops.aps.anl.gov/sddsStatus/MpsData.sdds.gz
+    //    https://ops.aps.anl.gov/sddsStatus/SrPsSummary.sdds.gz
+    //    https://ops.aps.anl.gov/sddsStatus/mainSummary.sdds.gz
+    //    https://ops.aps.anl.gov/sddsStatus/mainSummaryBig1.sdds.gz
     
     // SDDS parameter pages (filename, title)
     // Note: I removed LNDSData.sdds.gz from here, since it now has its own custom view.
@@ -29,18 +47,23 @@ struct SDDSAllView: View {
             // Page 2: PSS station searched/secure status
             SDDSStationSearchedStatusView(loader: loader)
             
-            // Page 3: Compact SR RF summary
+            // Page 3: APS LNDS Status
+            SDDSLNDSStatusView(
+                urlString: baseURL + "LNDSData.sdds.gz",
+                title: "APS LNDS Status"
+            )
+            // Page 4: Compact SR RF summary
             SDDSRfCompactView(
                 urlString: baseURL + "SrRfSummary.sdds.gz",
                 title: "SR RF Summary"
             )
             
-            // Page 4: APS LNDS Status
-            SDDSLNDSStatusView(
-                urlString: baseURL + "LNDSData.sdds.gz",
-                title: "APS LNDS Status"
+            // Page 5: SR PS Status Detail
+            SDDSSrPsStatusView(
+                urlString: baseURL + "SrPsStatus.sdds.gz",
+                title: "APS Storage Ring PS Status Detail"
             )
-            
+
             // Remaining SDDS parameter pages (generic viewer)
             ForEach(sddsPages, id: \.file) { entry in
                 SDDSAllParamsView(
