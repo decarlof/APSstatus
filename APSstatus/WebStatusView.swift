@@ -1,12 +1,14 @@
 import SwiftUI
 
 struct WebStatusView: View {
-    private let imageURLs = [
-        "https://www3.aps.anl.gov/asd/operations/gifplots/HDSRcomfort.png",
-        "https://www3.aps.anl.gov/aod/blops/plots/WeekHistory.png"
-    ]
+    // Injected URLs
+    private let imageURLs: [String]
     
     @State private var refreshID = UUID() // forces view rebuild on refresh
+
+    init(imageURLs: [String]) {
+        self.imageURLs = imageURLs
+    }
 
     var body: some View {
         NavigationStack {

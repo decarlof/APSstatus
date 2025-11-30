@@ -1,11 +1,21 @@
 import SwiftUI
 
 struct SDDSStationSearchedStatusView: View {
-    // New loader: reads PssData.sdds.gz via the common SDDSAllParamsLoader
-    @StateObject private var loader =
-        SDDSAllParamsLoader(urlString: "https://ops.aps.anl.gov/sddsStatus/PssData.sdds.gz")
+    // Injected URL / title
+    private let urlString: String
+    private let title: String
 
+    @StateObject private var loader: SDDSAllParamsLoader
     @State private var isCompact: Bool = false   // Toggle between compact / full
+
+    init(
+        urlString: String,
+        title: String
+    ) {
+        self.urlString = urlString
+        self.title = title
+        _loader = StateObject(wrappedValue: SDDSAllParamsLoader(urlString: urlString))
+    }
 
     enum StationStatus {
         case searched    // ON
@@ -52,8 +62,6 @@ struct SDDSStationSearchedStatusView: View {
         "StaGSecureM", "StaHSecureM"
     ]
 
-    // MARK: - Common helper
-
     private func color(for status: StationStatus) -> Color {
         switch status {
         case .searched:
@@ -65,31 +73,25 @@ struct SDDSStationSearchedStatusView: View {
         }
     }
 
-    // MARK: - Beam-ready map derived from loader.items
-
-    /// Equivalent of `beamReadyMap` in SDDSShutterStatusLoader, but built from the common loader.
+    // Beam-ready map from loader.items (Description -> ValueString)
     private var beamReadyMap: [String: String] {
         Dictionary(uniqueKeysWithValues:
-            loader.items.map { item in
-                (
-                    item.description.trimmingCharacters(in: .whitespacesAndNewlines),
-                    item.value.trimmingCharacters(in: .whitespacesAndNewlines)
-                )
+            loader.items.map {
+                ($0.description.trimmingCharacters(in: .whitespacesAndNewlines),
+                 $0.value.trimmingCharacters(in: .whitespacesAndNewlines))
             }
         )
     }
 
-    // MARK: - Compact data (same logic, but using beamReadyMap above)
+    // MARK: - Compact data (same logic as before, using beamReadyMap)
 
     private var sectorData: (rows: [SectorRow], idSegmentWidth: CGFloat) {
         // First build beamlineId -> [stationLetter: status]
         var beamlineMap: [String: [Character: StationStatus]] = [:]
 
         for (key, rawValue) in beamReadyMap {
-            // Normalize value
             let value = rawValue.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
 
-            // Determine status from ON/OFF
             let status: StationStatus
             switch value {
             case "ON":
@@ -102,14 +104,11 @@ struct SDDSStationSearchedStatusView: View {
 
             guard key.count >= 4 else { continue }
 
-            // Beamline prefix: "BM" or "ID"
             let prefix = String(key.prefix(2))
             guard prefix == "BM" || prefix == "ID" else { continue }
 
-            // Remove prefix
             let afterPrefix = key.dropFirst(2)
 
-            // Beamline number digits
             var numberPart = ""
             var idx = afterPrefix.startIndex
             while idx < afterPrefix.endIndex, afterPrefix[idx].isNumber {
@@ -119,10 +118,8 @@ struct SDDSStationSearchedStatusView: View {
 
             guard !numberPart.isEmpty, let _ = Int(numberPart) else { continue }
 
-            // Remainder after the number - contains station info and suffix
             let remainder = afterPrefix[idx...]
 
-            // Determine station letter
             let stationLetter: Character?
             if remainder.hasPrefix("Sta"),
                let letterIndex = remainder.index(remainder.startIndex,
@@ -140,11 +137,9 @@ struct SDDSStationSearchedStatusView: View {
 
             guard let letter = stationLetter else { continue }
 
-            // Normalize beamline ID (IDxx or BMxx)
             let padded = numberPart.count == 1 ? "0\(numberPart)" : numberPart
             let beamlineId = "\(prefix)\(padded)"
 
-            // Store/update status: searched > notSearched > unknown
             var stationMap = beamlineMap[beamlineId] ?? [:]
             if let existing = stationMap[letter] {
                 switch (existing, status) {
@@ -165,7 +160,6 @@ struct SDDSStationSearchedStatusView: View {
             beamlineMap[beamlineId] = stationMap
         }
 
-        // Collect sectors from all beamlineIds
         let beamlineIds = Array(beamlineMap.keys)
 
         var sectors = Set<Int>()
@@ -212,8 +206,6 @@ struct SDDSStationSearchedStatusView: View {
             }
         }
 
-        // Compute ID segment width so that the widest ID row fits:
-        //   label "ID" = 20pt, station box width = 22, spacing = 3
         let labelWidth: CGFloat = 20
         let boxWidth: CGFloat = 22
         let spacing: CGFloat = 3
@@ -224,7 +216,6 @@ struct SDDSStationSearchedStatusView: View {
             let gapsWidth = CGFloat(maxIdStationCount - 1) * spacing
             idSegmentWidth = labelWidth + boxesWidth + gapsWidth
         } else {
-            // Fallback minimum width if there are no ID beamlines
             idSegmentWidth = 80
         }
 
@@ -237,10 +228,8 @@ struct SDDSStationSearchedStatusView: View {
         var result: [String: [Character: StationStatus]] = [:]
 
         for (key, rawValue) in beamReadyMap {
-            // Normalize value
             let value = rawValue.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
 
-            // Determine status from ON/OFF
             let status: StationStatus
             switch value {
             case "ON":
@@ -253,14 +242,11 @@ struct SDDSStationSearchedStatusView: View {
 
             guard key.count >= 4 else { continue }
 
-            // Beamline prefix: "BM" or "ID"
             let prefix = String(key.prefix(2))
             guard prefix == "BM" || prefix == "ID" else { continue }
 
-            // Remove prefix
             let afterPrefix = key.dropFirst(2)
 
-            // Beamline number digits
             var numberPart = ""
             var idx = afterPrefix.startIndex
             while idx < afterPrefix.endIndex, afterPrefix[idx].isNumber {
@@ -270,10 +256,8 @@ struct SDDSStationSearchedStatusView: View {
 
             guard !numberPart.isEmpty, let n = Int(numberPart) else { continue }
 
-            // Remainder after the number
             let remainder = afterPrefix[idx...]
 
-            // Determine station letter
             let stationLetter: Character?
             if remainder.hasPrefix("Sta"),
                let letterIndex = remainder.index(remainder.startIndex,
@@ -291,11 +275,9 @@ struct SDDSStationSearchedStatusView: View {
 
             guard let letter = stationLetter else { continue }
 
-            // Normalize beamline ID to padded form (e.g., ID01, BM08)
             let padded = String(format: "%02d", n)
             let beamlineId = "\(prefix)\(padded)"
 
-            // Store/update status: searched > notSearched > unknown
             var stationMap = result[beamlineId] ?? [:]
             if let existing = stationMap[letter] {
                 switch (existing, status) {
@@ -316,7 +298,6 @@ struct SDDSStationSearchedStatusView: View {
             result[beamlineId] = stationMap
         }
 
-        // Build BM01, ID01, BM02, ID02, ... order
         let beamlineIds = Array(result.keys)
 
         var sectors = Set<Int>()
@@ -377,7 +358,7 @@ struct SDDSStationSearchedStatusView: View {
                     }
                 }
             }
-            .navigationTitle("PSS Station Status")
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -395,7 +376,7 @@ struct SDDSStationSearchedStatusView: View {
         }
     }
 
-    // MARK: - Compact view (unchanged layout)
+    // MARK: - Compact view
 
     private var compactView: some View {
         let data = sectorData
@@ -430,12 +411,10 @@ struct SDDSStationSearchedStatusView: View {
                 LazyVStack(alignment: .leading, spacing: 2) {
                     ForEach(rows) { row in
                         HStack(alignment: .center, spacing: 8) {
-                            // Sector label: "01", "02", ...
                             Text(String(format: "%02d", row.sector))
                                 .font(.caption)
                                 .frame(width: 26, alignment: .leading)
 
-                            // ID segment in a fixed-width frame based on max ID stations
                             if let idBl = row.idStations {
                                 compactBeamlineSegment(label: "ID", beamline: idBl)
                                     .frame(width: idSegmentWidth, alignment: .leading)
@@ -444,7 +423,6 @@ struct SDDSStationSearchedStatusView: View {
                                     .frame(width: idSegmentWidth)
                             }
 
-                            // BM segment (if exists), starts at same x for all rows
                             if let bmBl = row.bmStations {
                                 compactBeamlineSegment(label: "BM", beamline: bmBl)
                             }
@@ -458,7 +436,6 @@ struct SDDSStationSearchedStatusView: View {
         }
     }
 
-    /// One segment: "ID" or "BM" label + its station boxes for compact view
     private func compactBeamlineSegment(label: String, beamline: BeamlineStations) -> some View {
         HStack(spacing: 4) {
             Text(label)
@@ -481,7 +458,7 @@ struct SDDSStationSearchedStatusView: View {
         }
     }
 
-    // MARK: - Full view (unchanged layout)
+    // MARK: - Full view
 
     private var fullView: some View {
         ScrollView {
@@ -511,7 +488,6 @@ struct SDDSStationSearchedStatusView: View {
                     ForEach(beamlineStationsFull, id: \.id) { bl in
                         HStack(alignment: .center, spacing: 8) {
 
-                            // Beamline label as "01-BM", "01-ID", etc.
                             let prefix = String(bl.id.prefix(2))      // "BM" or "ID"
                             let numPart = bl.id.dropFirst(2)          // "01", "23", ...
                             let labelText = "\(numPart)-\(prefix)"

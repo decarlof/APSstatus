@@ -1,15 +1,29 @@
 import SwiftUI
 
 struct SDDSShutterStatusView: View {
-    // MAIN status loader (was SDDSShutterStatusLoader.mainStatusURL)
-    @StateObject private var loaderMain = SDDSAllParamsLoader(
-        urlString: "https://ops.aps.anl.gov/sddsStatus/mainStatus.sdds.gz"
-    )
+    // MARK: - Injected URLs / title
 
-    // PSS data loader (was SDDSShutterStatusLoader.pssDataURL)
-    @StateObject private var loaderPss = SDDSAllParamsLoader(
-        urlString: "https://ops.aps.anl.gov/sddsStatus/PssData.sdds.gz"
-    )
+    private let mainStatusURL: String
+    private let pssDataURL: String
+    private let title: String
+
+    // MAIN status loader
+    @StateObject private var loaderMain: SDDSAllParamsLoader
+    // PSS data loader
+    @StateObject private var loaderPss: SDDSAllParamsLoader
+
+    init(
+        mainStatusURL: String,
+        pssDataURL: String,
+        title: String
+    ) {
+        self.mainStatusURL = mainStatusURL
+        self.pssDataURL = pssDataURL
+        self.title = title
+
+        _loaderMain = StateObject(wrappedValue: SDDSAllParamsLoader(urlString: mainStatusURL))
+        _loaderPss  = StateObject(wrappedValue: SDDSAllParamsLoader(urlString: pssDataURL))
+    }
 
     // MARK: - Display mapping
 
@@ -27,7 +41,6 @@ struct SDDSShutterStatusView: View {
         "OPSMessage5":    "Problem Info",
         "Current":        "Current",
         "Lifetime":       "Lifetime"
-        // NOpenShutters no longer shown as a line item
     ]
 
     private let orderByKey = [
@@ -44,7 +57,6 @@ struct SDDSShutterStatusView: View {
         "OPSMessage4",
         "OPSMessage5",
         "UpdateTime"
-        // NOpenShutters is not in this list anymore
     ]
 
     private var keyRank: [String: Int] {
@@ -343,9 +355,9 @@ struct SDDSShutterStatusView: View {
                                     Text("Shutter status")
                                         .font(.headline)
 
-                                    // Legend for shutter rectangles with counts
                                     let legend = shutterLegendTexts
 
+                                    // Legend for shutter rectangles with counts
                                     HStack(spacing: 8) {
                                         // OPEN (magenta) with count
                                         ZStack {
@@ -422,7 +434,6 @@ struct SDDSShutterStatusView: View {
                                     Text("Station A not searched")
                                         .font(.caption2)
                                 }
-                                // You can re‑enable a black-dot legend here if desired.
                             }
                             .padding(.top, 6)
                         }
@@ -434,7 +445,7 @@ struct SDDSShutterStatusView: View {
                 loaderMain.fetchStatus()
                 loaderPss.fetchStatus()
             }
-            .navigationTitle("APS Status")
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
         }
     }

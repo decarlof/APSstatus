@@ -1,6 +1,12 @@
 import SwiftUI
 
 struct SDDSAllView: View {
+    // Web status image URLs (single source of truth)
+    private let webStatusImageURLs = [
+        "https://www3.aps.anl.gov/asd/operations/gifplots/HDSRcomfort.png",
+        "https://www3.aps.anl.gov/aod/blops/plots/WeekHistory.png"
+    ]
+ 
     private let baseURL = "https://ops.aps.anl.gov/sddsStatus/"
     
     // Shared loader for APS status + PSS
@@ -27,10 +33,10 @@ struct SDDSAllView: View {
     // SDDS parameter pages (filename, title)
     // Note: I removed LNDSData.sdds.gz from here, since it now has its own custom view.
     private let sddsPages: [(file: String, title: String)] = [
-        ("SrVacStatus.sdds.gz",    "SR Vacuum"),
+        //("SrVacStatus.sdds.gz",    "SR Vacuum"),
         // ("SrRfSummary.sdds.gz",    "SR RF Summary"),
         // ("PssData.sdds.gz",        "PSS"),
-        ("SrPsStatus.sdds.gz",     "SR PS Status"),
+        // ("SrPsStatus.sdds.gz",     "SR PS Status"),
         ("SRKlystronData.sdds.gz", "SR Klystron Data"),
         // ("FeepsData.sdds.gz",      "FEEPS Data"),
         // ("LNDSData.sdds.gz",       "LNDS Data"),  // <— keep commented/removed
@@ -38,34 +44,47 @@ struct SDDSAllView: View {
     
     var body: some View {
         TabView {
-            WebStatusView()
+            // Page 0: Web status
+            WebStatusView(imageURLs: webStatusImageURLs)
+            
+            // Page 1: Shutter status / APS main status
+            SDDSShutterStatusView(
+                mainStatusURL: baseURL + "mainStatus.sdds.gz",
+                pssDataURL:    baseURL + "PssData.sdds.gz",
+                title: "APS Status"
+            )
 
-            // Shutter status / APS main status (refactored)
-            SDDSShutterStatusView()
+            // Page 2: PSS station searched/secure status
+            SDDSStationSearchedStatusView(
+                urlString: baseURL + "PssData.sdds.gz",
+                title: "PSS Station Status"
+            )
 
-            // PSS station searched/secure status (refactored)
-            SDDSStationSearchedStatusView()
-
+            // Page 3: APS LNDS Status
             SDDSLNDSStatusView(
                 urlString: baseURL + "LNDSData.sdds.gz",
                 title: "APS LNDS Status"
             )
 
+            // Page 4: SR Vacuum Status
             SDDSVacuumStatusView(
                 urlString: baseURL + "SrVacStatus.sdds.gz",
                 title: "SR Vacuum Status"
             )
 
+            // Page 5: Compact SR RF summary
             SDDSRfCompactView(
                 urlString: baseURL + "SrRfSummary.sdds.gz",
                 title: "SR RF Summary"
             )
 
+            // Page 6: SR PS Status Detail
             SDDSSrPsStatusView(
                 urlString: baseURL + "SrPsStatus.sdds.gz",
                 title: "APS Storage Ring PS Status Detail"
             )
 
+            // Remaining SDDS parameter pages (generic viewer)
             ForEach(sddsPages, id: \.file) { entry in
                 SDDSAllParamsView(
                     urlString: baseURL + entry.file,

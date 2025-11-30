@@ -10,8 +10,7 @@ import SwiftUI
 struct SDDSVacuumStatusView: View {
     @StateObject private var loader: SDDSAllParamsLoader
 
-    init(urlString: String = "https://ops.aps.anl.gov/sddsStatus/SrVacStatus.sdds.gz",
-         title: String = "SR Vacuum Status") {
+    init(urlString: String, title: String) {
         _loader = StateObject(wrappedValue: SDDSAllParamsLoader(urlString: urlString))
         self.title = title
     }

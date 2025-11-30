@@ -10,7 +10,7 @@ import SwiftUI
 struct SDDSSrPsStatusView: View {
     @StateObject private var loader: SDDSAllParamsLoader
     
-    init(urlString: String, title: String = "APS Storage Ring PS Status Detail") {
+    init(urlString: String, title: String) {
         _loader = StateObject(wrappedValue: SDDSAllParamsLoader(urlString: urlString))
         self.title = title
     }
