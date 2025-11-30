@@ -4,7 +4,7 @@ struct SDDSAllView: View {
     private let baseURL = "https://ops.aps.anl.gov/sddsStatus/"
     
     // Shared loader for APS status + PSS
-    @StateObject private var loader = SDDSShutterStatusLoader()
+    // @StateObject private var loader = SDDSShutterStatusLoader()
 
     
     //    https://ops.aps.anl.gov/sddsStatus/SrVacStatus.sdds.gz
@@ -38,40 +38,34 @@ struct SDDSAllView: View {
     
     var body: some View {
         TabView {
-            // Page 0: Web status (unchanged)
             WebStatusView()
-            
-            // Page 1: Shutter status / APS main status
-            SDDSShutterStatusView(loader: loader)
-            
-            // Page 2: PSS station searched/secure status
-            SDDSStationSearchedStatusView(loader: loader)
-            
-            // Page 3: APS LNDS Status
+
+            // Shutter status / APS main status (refactored)
+            SDDSShutterStatusView()
+
+            // PSS station searched/secure status (refactored)
+            SDDSStationSearchedStatusView()
+
             SDDSLNDSStatusView(
                 urlString: baseURL + "LNDSData.sdds.gz",
                 title: "APS LNDS Status"
             )
-            
-            // Page 4: SR Vacuum Status (new dedicated viewer)
+
             SDDSVacuumStatusView(
                 urlString: baseURL + "SrVacStatus.sdds.gz",
                 title: "SR Vacuum Status"
             )
-            
-            // Page 5: Compact SR RF summary
+
             SDDSRfCompactView(
                 urlString: baseURL + "SrRfSummary.sdds.gz",
                 title: "SR RF Summary"
             )
-            
-            // Page 6: SR PS Status Detail
+
             SDDSSrPsStatusView(
                 urlString: baseURL + "SrPsStatus.sdds.gz",
                 title: "APS Storage Ring PS Status Detail"
             )
-            
-            // Remaining SDDS parameter pages (generic viewer)
+
             ForEach(sddsPages, id: \.file) { entry in
                 SDDSAllParamsView(
                     urlString: baseURL + entry.file,
@@ -79,7 +73,7 @@ struct SDDSAllView: View {
                 )
             }
         }
-        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never)) // swipe horizontally, no tab bar
+        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
     }
 }
 

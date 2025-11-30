@@ -1,14 +1,10 @@
-//
-//  SDDSStationSearchedStatusView.swift
-//  APSstatus
-//
-//  Created by Francesco De Carlo on 11/26/25.
-//
-
 import SwiftUI
 
 struct SDDSStationSearchedStatusView: View {
-    @ObservedObject var loader: SDDSShutterStatusLoader
+    // New loader: reads PssData.sdds.gz via the common SDDSAllParamsLoader
+    @StateObject private var loader =
+        SDDSAllParamsLoader(urlString: "https://ops.aps.anl.gov/sddsStatus/PssData.sdds.gz")
+
     @State private var isCompact: Bool = false   // Toggle between compact / full
 
     enum StationStatus {
@@ -69,14 +65,27 @@ struct SDDSStationSearchedStatusView: View {
         }
     }
 
-    // MARK: - Compact data (exactly your compact implementation)
+    // MARK: - Beam-ready map derived from loader.items
 
-    // Cached row + layout info so we don't recompute per render
+    /// Equivalent of `beamReadyMap` in SDDSShutterStatusLoader, but built from the common loader.
+    private var beamReadyMap: [String: String] {
+        Dictionary(uniqueKeysWithValues:
+            loader.items.map { item in
+                (
+                    item.description.trimmingCharacters(in: .whitespacesAndNewlines),
+                    item.value.trimmingCharacters(in: .whitespacesAndNewlines)
+                )
+            }
+        )
+    }
+
+    // MARK: - Compact data (same logic, but using beamReadyMap above)
+
     private var sectorData: (rows: [SectorRow], idSegmentWidth: CGFloat) {
         // First build beamlineId -> [stationLetter: status]
         var beamlineMap: [String: [Character: StationStatus]] = [:]
 
-        for (key, rawValue) in loader.beamReadyMap {
+        for (key, rawValue) in beamReadyMap {
             // Normalize value
             let value = rawValue.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
 
@@ -222,12 +231,12 @@ struct SDDSStationSearchedStatusView: View {
         return (rows, idSegmentWidth)
     }
 
-    // MARK: - Non-compact data (original beamline-based layout)
+    // MARK: - Non-compact data (beamline-based layout)
 
     private var beamlineStationsFull: [BeamlineStations] {
         var result: [String: [Character: StationStatus]] = [:]
 
-        for (key, rawValue) in loader.beamReadyMap {
+        for (key, rawValue) in beamReadyMap {
             // Normalize value
             let value = rawValue.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
 
@@ -350,15 +359,15 @@ struct SDDSStationSearchedStatusView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if loader.beamReadyMap.isEmpty {
+                if beamReadyMap.isEmpty {
                     VStack(spacing: 4) {
                         ProgressView()
-                        Text("Loading PSS station status…")
+                        Text(loader.statusText)
                             .font(.caption)
                             .foregroundColor(.gray)
                     }
                     .onAppear {
-                        loader.refreshPss()
+                        loader.fetchStatus()
                     }
                 } else {
                     if isCompact {
@@ -377,7 +386,7 @@ struct SDDSStationSearchedStatusView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
-                        loader.refreshPss()
+                        loader.fetchStatus()
                     } label: {
                         Image(systemName: "arrow.clockwise")
                     }
@@ -386,7 +395,7 @@ struct SDDSStationSearchedStatusView: View {
         }
     }
 
-    // MARK: - Compact view (your compact implementation)
+    // MARK: - Compact view (unchanged layout)
 
     private var compactView: some View {
         let data = sectorData
@@ -472,7 +481,7 @@ struct SDDSStationSearchedStatusView: View {
         }
     }
 
-    // MARK: - Full view (original beamline-per-row layout)
+    // MARK: - Full view (unchanged layout)
 
     private var fullView: some View {
         ScrollView {
