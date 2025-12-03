@@ -33,13 +33,22 @@ struct SDDSAllView: View {
     // SDDS parameter pages (filename, title)
     // Note: I removed LNDSData.sdds.gz from here, since it now has its own custom view.
     private let sddsPages: [(file: String, title: String)] = [
-        //("SrVacStatus.sdds.gz",    "SR Vacuum"),
-        // ("SrRfSummary.sdds.gz",    "SR RF Summary"),
-        // ("PssData.sdds.gz",        "PSS"),
-        // ("SrPsStatus.sdds.gz",     "SR PS Status"),
-        ("SRKlystronData.sdds.gz", "SR Klystron Data"),
-        // ("FeepsData.sdds.gz",      "FEEPS Data"),
-        // ("LNDSData.sdds.gz",       "LNDS Data"),  // <— keep commented/removed
+        // ("FeepsData.sdds.gz",          "FEEPS Data"),          // <- PVs are not connected
+        // ("HSCU7.sdds.gz",              "HSCU 7"),              // <- PVs are not connected
+        // ("IEXData.sdds.gz",            "IEX Data"),            // <- PVs are not connected
+        // ("LNDSData.sdds.gz",           "LNDS Data"),        // <- App page implemented
+        // ("MpsData.sdds.gz",            "MPS Data"),            // <- PVs are not connected
+        // ("mainStatus.sdds.gz",         "Main Status"),      // <- App page implemented
+        // ("mainSummary.sdds.gz",        "Main Summary"),        // <- no additional info compared to mainStatus.sdds.gz
+        // ("mainSummaryBig1.sdds.gz",    "Main Summary Big 1"),  // <- some PVs are not connected
+        // ("PssData.sdds.gz",            "PSS Data"),         // <- App page implemented
+        // ("SCU0.sdds.gz",               "SCU 0"),               // <- PVs are not connected
+        // ("SCU1.sdds.gz",               "SCU 1"),               // <- PVs are not connected
+        // ("SrPsStatus.sdds.gz",         "SR PS Status"),     // <- App page implemented
+        ("SrPsSummary.sdds.gz",        "SR PS Summary"),
+        // ("SrRfSummary.sdds.gz",        "SR RF Summary"),    // <- App page implemented
+        // ("SrVacStatus.sdds.gz",        "SR Vac Status"),    // <- App page implemented
+        ("SRKlystronData.sdds.gz",     "SR Klystron Data")
     ]
     
     var body: some View {
