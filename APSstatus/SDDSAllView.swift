@@ -45,7 +45,7 @@ struct SDDSAllView: View {
         // ("SCU0.sdds.gz",               "SCU 0"),               // <- PVs are not connected
         // ("SCU1.sdds.gz",               "SCU 1"),               // <- PVs are not connected
         // ("SrPsStatus.sdds.gz",         "SR PS Status"),     // <- App page implemented
-        ("SrPsSummary.sdds.gz",        "SR PS Summary"),
+        // ("SrPsSummary.sdds.gz",        "SR PS Summary"),    // <- App page implemented
         // ("SrRfSummary.sdds.gz",        "SR RF Summary"),    // <- App page implemented
         // ("SrVacStatus.sdds.gz",        "SR Vac Status"),    // <- App page implemented
         ("SRKlystronData.sdds.gz",     "SR Klystron Data")
@@ -93,6 +93,16 @@ struct SDDSAllView: View {
                 title: "APS Storage Ring PS Status Detail"
             )
 
+            // Page 7: SR PS Status Detail
+            SrPsSummaryView(
+                urlString: baseURL + "SrPsSummary.sdds.gz",
+                title: "SR PS Summary"
+            )
+            // Page 8: SR PS Status Detail
+            SDDSSrKlystronDataView(
+                urlString: baseURL + "SRKlystronData.sdds.gz",
+                title: "SR Klystron"
+            )
             // Remaining SDDS parameter pages (generic viewer)
             ForEach(sddsPages, id: \.file) { entry in
                 SDDSAllParamsView(
