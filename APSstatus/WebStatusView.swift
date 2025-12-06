@@ -3,11 +3,15 @@ import SwiftUI
 struct WebStatusView: View {
     // Injected URLs
     private let imageURLs: [String]
-    
+
+    // Injected PSS loader for beamline selection
+    @ObservedObject var pssLoader: SDDSAllParamsLoader
+
     @State private var refreshID = UUID() // forces view rebuild on refresh
 
-    init(imageURLs: [String]) {
+    init(imageURLs: [String], pssLoader: SDDSAllParamsLoader) {
         self.imageURLs = imageURLs
+        self.pssLoader = pssLoader
     }
 
     var body: some View {
@@ -50,11 +54,13 @@ struct WebStatusView: View {
                     URLCache.shared.removeAllCachedResponses()
                     refreshID = UUID()
                 }
-                
+
                 HStack {
                     NavigationLink("About", destination: AboutView())
                     Spacer()
-                    NavigationLink("Settings", destination: SettingsView())
+                    NavigationLink("Settings") {
+                        SettingsView(pssLoader: pssLoader)
+                    }
                 }
                 .padding(.horizontal)
                 .padding(.bottom)

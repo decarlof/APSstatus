@@ -12,6 +12,10 @@ struct SDDSAllView: View {
     // Shared loader for APS status + PSS
     // @StateObject private var loader = SDDSShutterStatusLoader()
 
+    // NEW: shared loader for PSS data used by BeamlineSelectionView / Settings
+    @StateObject private var pssLoader = SDDSAllParamsLoader(
+        urlString: "https://ops.aps.anl.gov/sddsStatus/PssData.sdds.gz"
+    )
     
     //    https://ops.aps.anl.gov/sddsStatus/SrVacStatus.sdds.gz
     //    https://ops.aps.anl.gov/sddsStatus/mainStatus.sdds.gz
@@ -48,13 +52,16 @@ struct SDDSAllView: View {
         // ("SrPsSummary.sdds.gz",        "SR PS Summary"),    // <- App page implemented
         // ("SrRfSummary.sdds.gz",        "SR RF Summary"),    // <- App page implemented
         // ("SrVacStatus.sdds.gz",        "SR Vac Status"),    // <- App page implemented
-        ("SRKlystronData.sdds.gz",     "SR Klystron Data")
+        // ("SRKlystronData.sdds.gz",     "SR Klystron Data")  // <- App page implemented
     ]
     
     var body: some View {
         TabView {
             // Page 0: Web status
-            WebStatusView(imageURLs: webStatusImageURLs)
+            WebStatusView(
+                imageURLs: webStatusImageURLs,
+                pssLoader: pssLoader   // NEW: pass shared PSS loader
+            )
             
             // Page 1: Shutter status / APS main status
             SDDSShutterStatusView(
@@ -80,29 +87,31 @@ struct SDDSAllView: View {
                 urlString: baseURL + "SrVacStatus.sdds.gz",
                 title: "SR Vacuum Status"
             )
-
-            // Page 5: Compact SR RF summary
-            SDDSRfCompactView(
-                urlString: baseURL + "SrRfSummary.sdds.gz",
-                title: "SR RF Summary"
+            
+            // Page 5: SR PS Status Detail
+            SDDSSrKlystronDataView(
+                urlString: baseURL + "SRKlystronData.sdds.gz",
+                title: "SR Klystron"
             )
-
+            
             // Page 6: SR PS Status Detail
             SDDSSrPsStatusView(
                 urlString: baseURL + "SrPsStatus.sdds.gz",
                 title: "APS Storage Ring PS Status Detail"
             )
+            
+            // Page 7: Compact SR RF summary
+            SDDSRfCompactView(
+                urlString: baseURL + "SrRfSummary.sdds.gz",
+                title: "SR RF Summary"
+            )
 
-            // Page 7: SR PS Status Detail
+            // Page 8: SR PS Status Detail
             SrPsSummaryView(
                 urlString: baseURL + "SrPsSummary.sdds.gz",
                 title: "SR PS Summary"
             )
-            // Page 8: SR PS Status Detail
-            SDDSSrKlystronDataView(
-                urlString: baseURL + "SRKlystronData.sdds.gz",
-                title: "SR Klystron"
-            )
+
             // Remaining SDDS parameter pages (generic viewer)
             ForEach(sddsPages, id: \.file) { entry in
                 SDDSAllParamsView(

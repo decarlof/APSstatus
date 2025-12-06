@@ -1,31 +1,30 @@
 import SwiftUI
 
 struct SettingsView: View {
-    // Use @AppStorage to persist preferences automatically
+    // Loader for PSS data, injected from parent
+    @ObservedObject var pssLoader: SDDSAllParamsLoader
+
+    // Existing preferences
     @AppStorage("enableNotifications") private var enableNotifications = true
-    @AppStorage("darkMode") private var darkMode = false
 
     var body: some View {
         Form {
-            Section(header: Text("General")) {
-                Button("Open App Settings") {
-                    if let url = URL(string: UIApplication.openSettingsURLString) {
-                        UIApplication.shared.open(url)
-                    }
+            Section(header: Text("Beamlines")) {
+                // Help text inside the Beamlines section
+                Text("Select the beamlines you are interested in. If you would like a custom beamline status page, please provide the EPICS PVs for your beamline so they can be included in a future update.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                NavigationLink("Beamline Selection") {
+                    BeamlineSelectionView(pssLoader: pssLoader)
                 }
             }
 
             Section(header: Text("Preferences")) {
                 Toggle("Enable Notifications", isOn: $enableNotifications)
-                Toggle("Dark Mode", isOn: $darkMode)
             }
         }
         .navigationTitle("Settings")
-    }
-}
-
-#Preview {
-    NavigationStack {
-        SettingsView()
     }
 }

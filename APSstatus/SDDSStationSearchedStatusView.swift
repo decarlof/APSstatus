@@ -83,7 +83,7 @@ struct SDDSStationSearchedStatusView: View {
         )
     }
 
-    // MARK: - Compact data (same logic as before, using beamReadyMap)
+    // MARK: - Compact data
 
     private var sectorData: (rows: [SectorRow], idSegmentWidth: CGFloat) {
         // First build beamlineId -> [stationLetter: status]
