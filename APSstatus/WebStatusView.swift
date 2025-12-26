@@ -8,7 +8,8 @@ struct WebStatusView: View {
     @ObservedObject var pssLoader: SDDSAllParamsLoader
 
     @State private var refreshID = UUID() // forces view rebuild on refresh
-
+    @State private var zoomImage: IdentifiableImage? = nil
+    
     init(imageURLs: [String], pssLoader: SDDSAllParamsLoader) {
         self.imageURLs = imageURLs
         self.pssLoader = pssLoader
@@ -30,6 +31,9 @@ struct WebStatusView: View {
                                         .scaledToFit()
                                         .cornerRadius(12)
                                         .shadow(radius: 3)
+                                        .onTapGesture {
+                                            zoomImage = IdentifiableImage(image: image)
+                                        }
                                 case .failure:
                                     VStack {
                                         Image(systemName: "xmark.octagon")
@@ -67,6 +71,9 @@ struct WebStatusView: View {
             }
             .navigationTitle("APS Status")
             .navigationBarTitleDisplayMode(.inline)
+            .fullScreenCover(item: $zoomImage) { wrapped in
+                ZoomableImageViewer(image: wrapped.image)
+            }
         }
     }
 }
