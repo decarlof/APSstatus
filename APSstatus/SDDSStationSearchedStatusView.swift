@@ -6,7 +6,7 @@ struct SDDSStationSearchedStatusView: View {
     private let title: String
 
     @StateObject private var loader: SDDSAllParamsLoader
-    @State private var isCompact: Bool = false   // Toggle between compact / full
+    @State private var isCompact: Bool = true   // Toggle between compact / full
 
     init(
         urlString: String,
@@ -362,8 +362,10 @@ struct SDDSStationSearchedStatusView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Toggle("Compact", isOn: $isCompact)
-                        .font(.caption)
+                    Button(isCompact ? "Expand" : "Compact") {
+                        isCompact.toggle()
+                    }
+                    .font(.caption)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
