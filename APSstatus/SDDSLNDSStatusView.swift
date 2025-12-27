@@ -103,6 +103,7 @@ struct SDDSLNDSStatusView: View {
                             Text("Updated: \(update)")
                                 .font(.footnote)
                                 .foregroundColor(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .center)
                                 .padding(.horizontal)
                         }
 

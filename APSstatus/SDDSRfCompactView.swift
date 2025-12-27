@@ -178,6 +178,7 @@ struct SDDSRfCompactView: View { @StateObject private var loader: SDDSAllParamsL
                             Text("Updated: \(update)")
                                 .font(.footnote)
                                 .foregroundColor(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .center)
                                 .padding(.horizontal)
                         }
                         
