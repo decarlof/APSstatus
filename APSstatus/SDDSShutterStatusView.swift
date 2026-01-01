@@ -103,7 +103,7 @@ struct SDDSShutterStatusView: View {
             }
             let rawNumber = String(numberPart).trimmingCharacters(in: .whitespacesAndNewlines)
             guard let n = Int(rawNumber) else {
-                // fallback: old behavior if parsing fails
+                // fallback if parsing fails
                 return key.replacingOccurrences(of: "ShutterClosed", with: "")
             }
             let padded = String(format: "%02d", n)
@@ -150,18 +150,14 @@ struct SDDSShutterStatusView: View {
             }
     }
 
-    /// Shutter items only, filtered and ordered as before.
+    /// Shutter items only, ORDERED, and **include _NoConnection_** so legend counts stay consistent.
     private var shutterItemsOrdered: [(description: String, value: String)] {
         loaderMain.items
             .map {
                 (description: $0.description.trimmingCharacters(in: .whitespacesAndNewlines),
-                 value: $0.value)
+                 value: $0.value.trimmingCharacters(in: .whitespacesAndNewlines))
             }
-            .filter { item in
-                guard isShutterKey(item.description) else { return false }
-                let v = item.value.trimmingCharacters(in: .whitespacesAndNewlines)
-                return v != "_NoConnection_"
-            }
+            .filter { isShutterKey($0.description) }
             .sorted { a, b in
                 let ia = shutterPosition(for: a.description) ?? Int.max
                 let ib = shutterPosition(for: b.description) ?? Int.max
@@ -170,33 +166,32 @@ struct SDDSShutterStatusView: View {
             }
     }
 
-    /// Number of shutters reported open (from NOpenShutters).
-    /// Returns nil if the key is missing or not an Int.
-    private var numberOfOpenShutters: Int? {
-        if let item = loaderMain.items.first(where: {
-            $0.description.trimmingCharacters(in: .whitespacesAndNewlines) == "NOpenShutters"
-        }) {
-            return Int(item.value.trimmingCharacters(in: .whitespacesAndNewlines))
+    /// Compute open/closed/unknown directly from shutter PV values.
+    /// OFF = OPEN, ON = CLOSED, anything else (incl _NoConnection_) = UNKNOWN.
+    private var shutterCounts: (open: Int, closed: Int, unknown: Int) {
+        var open = 0
+        var closed = 0
+        var unknown = 0
+
+        for item in shutterItemsOrdered {
+            let v = item.value.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+            switch v {
+            case "OFF": open += 1
+            case "ON":  closed += 1
+            default:    unknown += 1
+            }
         }
-        return nil
+        return (open, closed, unknown)
     }
 
-    /// Total number of shutters (used for legend). Adjust if 70 is not correct.
-    private let totalShutters = 70
-
-    /// Legend texts derived from NOpenShutters / totalShutters.
-    private var shutterLegendTexts: (open: String, closed: String) {
-        if let open = numberOfOpenShutters {
-            let closed = max(0, totalShutters - open)
-            return ("(\(open)) open", "(\(closed)) closed")
-        } else {
-            return ("open", "closed")
-        }
+    /// Legend texts derived from the shutter PVs (not NOpenShutters).
+    private var shutterLegendTexts: (open: String, closed: String, unknown: String?) {
+        let c = shutterCounts
+        return ("(\(c.open)) open", "(\(c.closed)) closed", c.unknown > 0 ? "(\(c.unknown)) unknown" : nil)
     }
 
     // MARK: - PSS beam-ready map (from loaderPss.items)
 
-    /// Equivalent of SDDSShutterStatusLoader.parsePssBeamReadyItems, but using the generic loader.
     private var beamReadyMap: [String: String] {
         Dictionary(uniqueKeysWithValues:
             loaderPss.items.map {
@@ -209,7 +204,6 @@ struct SDDSShutterStatusView: View {
     /// Helper for the UI: beam-ready dot color for a shutter PV
     private func beamReadyDotColor(forShutterKey shutterKey: String,
                                    shutterValue: String) -> Color {
-        // shutterKey example: "BM01ShutterClosed", "ID7ShutterClosed"
         guard (shutterKey.hasPrefix("BM") || shutterKey.hasPrefix("ID")),
               shutterKey.hasSuffix("ShutterClosed") else {
             return .black
@@ -222,33 +216,29 @@ struct SDDSShutterStatusView: View {
         }
         let numberString = String(numberPart)
 
-        guard let n = Int(numberString) else {
-            return .black
-        }
+        guard let n = Int(numberString) else { return .black }
 
-        // Determine if shutter is open or closed from shutterValue ("ON"/"OFF"/...)
-        // Assumption: "ON"  = shutter CLOSED
-        //             "OFF" = shutter OPEN
         let shutterState = shutterValue
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .uppercased()
 
-        // If the shutter is OPEN, dot is always magenta, regardless of PSS status
+        // If shutter is OPEN, dot is always magenta
         if shutterState == "OFF" {
-            // Same color you use for open shutters
             return Color(red: 0.9, green: 0.0, blue: 0.9)
         }
 
-        // Shutter is CLOSED → dot color depends on Station A status.
-        // Try both zero-padded and non-padded variants
+        // If shutter state is unknown (_NoConnection_), dot black
+        if shutterState != "ON" {
+            return .black
+        }
+
+        // Shutter CLOSED -> dot depends on PSS Station A status
         let padded = String(format: "%02d", n)
         let baseCandidates = [
             "\(prefix)\(padded)",
             "\(prefix)\(n)"
         ]
 
-        // For each base (e.g. "BM01"), try all known Station A suffix forms,
-        // covering Gen 1, Gen 3, Gen 3.4, and Gen 4 PSS.
         let stationASuffixes = [
             "StaASearchedPl", // Gen 1
             "ASearched",      // Gen 3
@@ -260,22 +250,23 @@ struct SDDSShutterStatusView: View {
         for base in baseCandidates {
             for suffix in stationASuffixes {
                 let key = base + suffix
-                if let raw = beamReadyMap[key]?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() {
-                    pssRaw = raw
+                if let raw0 = beamReadyMap[key]?
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .uppercased() {
+
+                    // NEW: ignore unusable entries and keep searching
+                    if raw0 == "_NOCONNECTION_" || raw0.isEmpty {
+                        continue
+                    }
+
+                    pssRaw = raw0
                     break
                 }
             }
             if pssRaw != nil { break }
         }
+        guard let pss = pssRaw else { return .black }
 
-        // No PSS entry for Station A → black dot (missing search status)
-        guard let pss = pssRaw else {
-            return .black
-        }
-
-        // Station A status:
-        // ON  -> searched / secure  -> green
-        // OFF -> not searched       -> orange
         switch pss {
         case "ON":
             return .green
@@ -291,9 +282,9 @@ struct SDDSShutterStatusView: View {
     private func shutterColor(for value: String) -> Color {
         let v = value.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         switch v {
-        case "ON":  return .green
-        case "OFF": return Color(red: 0.9, green: 0.0, blue: 0.9)
-        default:    return .gray.opacity(0.5)
+        case "ON":  return .green                       // CLOSED
+        case "OFF": return Color(red: 0.9, green: 0.0, blue: 0.9) // OPEN
+        default:    return .gray.opacity(0.5)           // UNKNOWN / _NoConnection_
         }
     }
 
@@ -303,7 +294,6 @@ struct SDDSShutterStatusView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
-                    // Show status while mainStatus is loading
                     if loaderMain.items.isEmpty {
                         Text(loaderMain.statusText)
                             .foregroundColor(.gray)
@@ -342,7 +332,7 @@ struct SDDSShutterStatusView: View {
                             }
                         }
 
-                        // Shutter grid and dot legend
+                        // Shutter grid and legend
                         if !shutterItemsOrdered.isEmpty {
                             let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 6)
 
@@ -350,16 +340,18 @@ struct SDDSShutterStatusView: View {
                                 .padding(.vertical, 6)
 
                             VStack(alignment: .leading, spacing: 4) {
-                                // Title + shutter state legend
+                                
+                                // Replace ONLY this legend HStack block inside your "Shutter status" header:
+
                                 HStack(spacing: 12) {
                                     Text("Shutter status")
                                         .font(.headline)
 
                                     let legend = shutterLegendTexts
 
-                                    // Legend for shutter rectangles with counts
+                                    // Keep all legend chips on ONE line
                                     HStack(spacing: 8) {
-                                        // OPEN (magenta) with count
+                                        // OPEN (magenta)
                                         ZStack {
                                             RoundedRectangle(cornerRadius: 4)
                                                 .fill(Color(red: 0.9, green: 0.0, blue: 0.9))
@@ -368,9 +360,10 @@ struct SDDSShutterStatusView: View {
                                                 .font(.caption2)
                                                 .fontWeight(.semibold)
                                                 .foregroundColor(.white)
+                                                .lineLimit(1)
                                         }
 
-                                        // CLOSED (green) with count
+                                        // CLOSED (green)
                                         ZStack {
                                             RoundedRectangle(cornerRadius: 4)
                                                 .fill(Color.green)
@@ -379,9 +372,28 @@ struct SDDSShutterStatusView: View {
                                                 .font(.caption2)
                                                 .fontWeight(.semibold)
                                                 .foregroundColor(.white)
+                                                .lineLimit(1)
+                                        }
+
+                                        // UNKNOWN (gray) if any
+                                        if let unk = legend.unknown {
+                                            ZStack {
+                                                RoundedRectangle(cornerRadius: 4)
+                                                    .fill(Color.gray.opacity(0.7))
+                                                    .frame(width: 105, height: 18)
+                                                Text(unk)
+                                                    .font(.caption2)
+                                                    .fontWeight(.semibold)
+                                                    .foregroundColor(.white)
+                                                    .lineLimit(1)
+                                            }
                                         }
                                     }
+                                    .layoutPriority(1)     // prevents wrapping before the title
+                                    .fixedSize(horizontal: true, vertical: false) // keeps it on one line
                                 }
+
+                                
                                 .padding(.bottom, 4)
 
                                 LazyVGrid(columns: columns, spacing: 8) {
