@@ -1,9 +1,6 @@
 import SwiftUI
 
 struct SettingsView: View {
-    // Loader for PSS data, injected from parent
-    @ObservedObject var pssLoader: SDDSAllParamsLoader
-
     // Existing preferences
     @AppStorage("enableNotifications") private var enableNotifications = true
 
@@ -17,7 +14,7 @@ struct SettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
 
                 NavigationLink("Beamline Selection") {
-                    BeamlineSelectionView(pssLoader: pssLoader)
+                    BeamlineSelectionView()
                 }
             }
 

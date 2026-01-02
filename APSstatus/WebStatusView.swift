@@ -4,9 +4,6 @@ struct WebStatusView: View {
     // Injected URLs
     private let imageURLs: [String]
 
-    // Injected PSS loader for beamline selection
-    @ObservedObject var pssLoader: SDDSAllParamsLoader
-
     @State private var refreshID = UUID() // forces view rebuild on refresh
     @State private var zoomImage: IdentifiableImage? = nil
 
@@ -14,9 +11,8 @@ struct WebStatusView: View {
     @State private var showAbout = false
     @State private var showSettings = false
     
-    init(imageURLs: [String], pssLoader: SDDSAllParamsLoader) {
+    init(imageURLs: [String]) {
         self.imageURLs = imageURLs
-        self.pssLoader = pssLoader
     }
 
     var body: some View {
@@ -86,7 +82,7 @@ struct WebStatusView: View {
             .sheet(isPresented: $showSettings) {
                 NavigationStack {
                     SwipeDownToDismissHint(title: "Settings") {
-                        SettingsView(pssLoader: pssLoader)
+                        SettingsView()
                     }
                 }
             }

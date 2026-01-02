@@ -13,9 +13,9 @@ struct SDDSAllView: View {
     // @StateObject private var loader = SDDSShutterStatusLoader()
 
     // NEW: shared loader for PSS data used by BeamlineSelectionView / Settings
-    @StateObject private var pssLoader = SDDSAllParamsLoader(
-        urlString: "https://ops.aps.anl.gov/sddsStatus/PssData.sdds.gz"
-    )
+    // @StateObject private var pssLoader = SDDSAllParamsLoader(
+    //     urlString: "https://ops.aps.anl.gov/sddsStatus/PssData.sdds.gz"
+    // )
     
     //    https://ops.aps.anl.gov/sddsStatus/SrVacStatus.sdds.gz
     //    https://ops.aps.anl.gov/sddsStatus/mainStatus.sdds.gz
@@ -84,8 +84,7 @@ struct SDDSAllView: View {
             TabView(selection: $selection) {
                 // Page 0: Web status
                 WebStatusView(
-                    imageURLs: webStatusImageURLs,
-                    pssLoader: pssLoader   // NEW: pass shared PSS loader
+                    imageURLs: webStatusImageURLs
                 )
                 .tag(0)
                 
