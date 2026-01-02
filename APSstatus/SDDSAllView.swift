@@ -55,72 +55,144 @@ struct SDDSAllView: View {
         // ("SRKlystronData.sdds.gz",     "SR Klystron Data")  // <- App page implemented
     ]
     
-    var body: some View {
-        TabView {
-            // Page 0: Web status
-            WebStatusView(
-                imageURLs: webStatusImageURLs,
-                pssLoader: pssLoader   // NEW: pass shared PSS loader
-            )
-            
-            // Page 1: Shutter status / APS main status
-            SDDSShutterStatusView(
-                mainStatusURL: baseURL + "mainStatus.sdds.gz",
-                pssDataURL:    baseURL + "PssData.sdds.gz",
-                title: "APS Status"
-            )
+    // NEW: selection to support highlighting current dot + tap-to-jump
+    @State private var selection: Int = 0
+    
+    // NEW: total page count (9 fixed pages + remaining generic pages)
+    private var totalPages: Int { 9 + sddsPages.count }
 
-            // Page 2: PSS station searched/secure status
-            SDDSStationSearchedStatusView(
-                urlString: baseURL + "PssData.sdds.gz",
-                title: "PSS Station Status"
-            )
+    // NEW: show/hide dots after inactivity
+    @State private var showDots: Bool = true
+    @State private var hideDotsTaskID: UUID = UUID()
 
-            // Page 3: APS LNDS Status
-            SDDSLNDSStatusView(
-                urlString: baseURL + "LNDSData.sdds.gz",
-                title: "APS LNDS Status"
-            )
-
-            // Page 4: SR Vacuum Status
-            SDDSVacuumStatusView(
-                urlString: baseURL + "SrVacStatus.sdds.gz",
-                title: "SR Vacuum Status"
-            )
-            
-            // Page 5: SR PS Status Detail
-            SDDSSrKlystronDataView(
-                urlString: baseURL + "SRKlystronData.sdds.gz",
-                title: "SR Klystron"
-            )
-            
-            // Page 6: SR PS Status Detail
-            SDDSSrPsStatusView(
-                urlString: baseURL + "SrPsStatus.sdds.gz",
-                title: "APS Storage Ring PS Status Detail"
-            )
-            
-            // Page 7: Compact SR RF summary
-            SDDSRfCompactView(
-                urlString: baseURL + "SrRfSummary.sdds.gz",
-                title: "SR RF Summary"
-            )
-
-            // Page 8: SR PS Status Detail
-            SrPsSummaryView(
-                urlString: baseURL + "SrPsSummary.sdds.gz",
-                title: "SR PS Summary"
-            )
-
-            // Remaining SDDS parameter pages (generic viewer)
-            ForEach(sddsPages, id: \.file) { entry in
-                SDDSAllParamsView(
-                    urlString: baseURL + entry.file,
-                    title: entry.title
-                )
+    // NEW: call this any time the user interacts to show dots and restart the 1s hide timer
+    private func showDotsThenAutoHide() {
+        showDots = true
+        let taskID = UUID()
+        hideDotsTaskID = taskID
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            guard hideDotsTaskID == taskID else { return }
+            withAnimation(.easeOut(duration: 0.2)) {
+                showDots = false
             }
         }
-        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+    }
+    
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            TabView(selection: $selection) {
+                // Page 0: Web status
+                WebStatusView(
+                    imageURLs: webStatusImageURLs,
+                    pssLoader: pssLoader   // NEW: pass shared PSS loader
+                )
+                .tag(0)
+                
+                // Page 1: Shutter status / APS main status
+                SDDSShutterStatusView(
+                    mainStatusURL: baseURL + "mainStatus.sdds.gz",
+                    pssDataURL:    baseURL + "PssData.sdds.gz",
+                    title: "APS Status"
+                )
+                .tag(1)
+
+                // Page 2: PSS station searched/secure status
+                SDDSStationSearchedStatusView(
+                    urlString: baseURL + "PssData.sdds.gz",
+                    title: "PSS Station Status"
+                )
+                .tag(2)
+
+                // Page 3: APS LNDS Status
+                SDDSLNDSStatusView(
+                    urlString: baseURL + "LNDSData.sdds.gz",
+                    title: "APS LNDS Status"
+                )
+                .tag(3)
+
+                // Page 4: SR Vacuum Status
+                SDDSVacuumStatusView(
+                    urlString: baseURL + "SrVacStatus.sdds.gz",
+                    title: "SR Vacuum Status"
+                )
+                .tag(4)
+                
+                // Page 5: SR PS Status Detail
+                SDDSSrKlystronDataView(
+                    urlString: baseURL + "SRKlystronData.sdds.gz",
+                    title: "SR Klystron"
+                )
+                .tag(5)
+                
+                // Page 6: SR PS Status Detail
+                SDDSSrPsStatusView(
+                    urlString: baseURL + "SrPsStatus.sdds.gz",
+                    title: "APS Storage Ring PS Status Detail"
+                )
+                .tag(6)
+                
+                // Page 7: Compact SR RF summary
+                SDDSRfCompactView(
+                    urlString: baseURL + "SrRfSummary.sdds.gz",
+                    title: "SR RF Summary"
+                )
+                .tag(7)
+
+                // Page 8: SR PS Status Detail
+                SrPsSummaryView(
+                    urlString: baseURL + "SrPsSummary.sdds.gz",
+                    title: "SR PS Summary"
+                )
+                .tag(8)
+
+                // Remaining SDDS parameter pages (generic viewer)
+                ForEach(Array(sddsPages.enumerated()), id: \.element.file) { idx, entry in
+                    SDDSAllParamsView(
+                        urlString: baseURL + entry.file,
+                        title: entry.title
+                    )
+                    .tag(9 + idx)
+                }
+            }
+            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never)) // NEW: hide system dots
+            // NEW: show dots on any touch; doesn't block swipes/taps in subviews
+            // NOTE: Removed the touch-capturing DragGesture(minimumDistance: 0) because it breaks controls in subviews (e.g., Settings beamline selection).
+            .onAppear {
+                showDotsThenAutoHide()
+            }
+            // NEW: show dots when the page changes (swipe left/right)
+            .onChange(of: selection) { _, _ in
+                showDotsThenAutoHide()
+            }
+
+            // NEW: SwiftUI-only dots (tap to jump), auto-hide after 1s inactivity
+            if showDots {
+                HStack(spacing: 8) {
+                    ForEach(0..<totalPages, id: \.self) { i in
+                        Circle()
+                            .fill(i == selection ? Color.primary : Color.secondary.opacity(0.35))
+                            .frame(width: 7, height: 7)
+                            .contentShape(Rectangle()) // makes tapping easier
+                            .onTapGesture {
+                                // Touch shows dots and restarts timer
+                                showDotsThenAutoHide()
+
+                                // Instant jump (no rapid multi-swipe animation)
+                                selection = i
+                            }
+                            .accessibilityLabel("Page \(i + 1) of \(totalPages)")
+                            .accessibilityAddTraits(i == selection ? [.isSelected] : [])
+                    }
+                }
+                .padding(.vertical, 10)
+                .padding(.horizontal, 14)
+                .background(.ultraThinMaterial)
+                .clipShape(Capsule())
+                .padding(.bottom, 8)
+                .transition(.opacity)
+            }
+        }
     }
 }
 
