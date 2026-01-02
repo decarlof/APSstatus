@@ -15,9 +15,8 @@ class MainViewController: UIViewController {
     }
 
     func setupNavigationBar() {
-        let aboutItem = UIBarButtonItem(title: "About", style: .plain, target: self, action: #selector(showAbout))
-        let settingsItem = UIBarButtonItem(title: "Settings", style: .plain, target: self, action: #selector(openSettings))
-        navigationItem.rightBarButtonItems = [aboutItem, settingsItem]
+        // Best: no UIKit About/Settings buttons if SwiftUI handles them
+        navigationItem.rightBarButtonItems = []
     }
 
     func setupMainUI() {
