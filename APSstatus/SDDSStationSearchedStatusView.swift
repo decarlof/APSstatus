@@ -367,13 +367,6 @@ struct SDDSStationSearchedStatusView: View {
                     }
                     .font(.caption)
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        loader.fetchStatus()
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                    }
-                }
             }
         }
     }
@@ -387,7 +380,7 @@ struct SDDSStationSearchedStatusView: View {
 
         return ScrollView {
             VStack(alignment: .leading, spacing: 4) {
-
+                
                 // Legend (centered)
                 HStack(spacing: 8) {
                     HStack(spacing: 4) {
@@ -397,7 +390,7 @@ struct SDDSStationSearchedStatusView: View {
                         Text("searched")
                             .font(.caption2)
                     }
-
+                    
                     HStack(spacing: 4) {
                         RoundedRectangle(cornerRadius: 3)
                             .fill(Color.orange)
@@ -408,7 +401,7 @@ struct SDDSStationSearchedStatusView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.bottom, 2)
-
+                
                 // Sector rows: "01" with ID and BM on same line
                 LazyVStack(alignment: .leading, spacing: 2) {
                     ForEach(rows) { row in
@@ -416,7 +409,7 @@ struct SDDSStationSearchedStatusView: View {
                             Text(String(format: "%02d", row.sector))
                                 .font(.caption)
                                 .frame(width: 26, alignment: .leading)
-
+                            
                             if let idBl = row.idStations {
                                 compactBeamlineSegment(label: "ID", beamline: idBl)
                                     .frame(width: idSegmentWidth, alignment: .leading)
@@ -424,7 +417,7 @@ struct SDDSStationSearchedStatusView: View {
                                 Spacer()
                                     .frame(width: idSegmentWidth)
                             }
-
+                            
                             if let bmBl = row.bmStations {
                                 compactBeamlineSegment(label: "BM", beamline: bmBl)
                             }
@@ -435,6 +428,9 @@ struct SDDSStationSearchedStatusView: View {
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
+        }
+        .refreshable {
+            loader.fetchStatus()
         }
     }
 
@@ -519,6 +515,9 @@ struct SDDSStationSearchedStatusView: View {
                 }
             }
             .padding()
+        }
+        .refreshable {
+            loader.fetchStatus()
         }
     }
 }

@@ -244,19 +244,13 @@ struct SDDSSrKlystronDataView: View {
                         }
                         .padding(.top, 8)
                     }
+                    .refreshable {
+                        loader.fetchStatus()
+                    }
                 }
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        loader.fetchStatus()
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                    }
-                }
-            }
         }
     }
 
