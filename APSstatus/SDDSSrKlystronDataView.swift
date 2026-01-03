@@ -213,8 +213,7 @@ struct SDDSSrKlystronDataView: View {
     // MARK: - View
 
     var body: some View {
-        NavigationStack {
-            Group {
+             Group {
                 if loader.items.isEmpty {
                     VStack(spacing: 8) {
                         ProgressView()
@@ -251,7 +250,6 @@ struct SDDSSrKlystronDataView: View {
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
-        }
     }
 
     // MARK: - Legend

@@ -338,7 +338,7 @@ struct SDDSStationSearchedStatusView: View {
     // MARK: - View
 
     var body: some View {
-        NavigationStack {
+
             Group {
                 if beamReadyMap.isEmpty {
                     VStack(spacing: 4) {
@@ -368,7 +368,6 @@ struct SDDSStationSearchedStatusView: View {
                     .font(.caption)
                 }
             }
-        }
     }
 
     // MARK: - Compact view

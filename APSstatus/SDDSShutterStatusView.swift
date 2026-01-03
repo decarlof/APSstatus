@@ -291,7 +291,6 @@ struct SDDSShutterStatusView: View {
     // MARK: - View
 
     var body: some View {
-        NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
                     if loaderMain.items.isEmpty {
@@ -460,5 +459,4 @@ struct SDDSShutterStatusView: View {
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
         }
-    }
 }

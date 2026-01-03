@@ -99,8 +99,7 @@ struct SrPsSummaryView: View {
     // MARK: - View
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
+             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     if loader.items.isEmpty {
                         Text(loader.statusText)
@@ -125,8 +124,7 @@ struct SrPsSummaryView: View {
             .refreshable { loader.fetchStatus() }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
-        }
-    }
+}
 
     // MARK: - Compact Table (RF style)
 

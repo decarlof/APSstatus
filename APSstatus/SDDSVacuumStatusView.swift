@@ -170,7 +170,6 @@ struct SDDSVacuumStatusView: View {
     // MARK: - View
 
     var body: some View {
-        NavigationStack {
             Group {
                 if loader.items.isEmpty {
                     VStack(spacing: 8) {
@@ -311,6 +310,5 @@ struct SDDSVacuumStatusView: View {
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
-        }
     }
 }

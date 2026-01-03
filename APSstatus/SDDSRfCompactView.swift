@@ -165,7 +165,6 @@ struct SDDSRfCompactView: View { @StateObject private var loader: SDDSAllParamsL
     // MARK: - View
     
     var body: some View {
-        NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     if loader.items.isEmpty {
@@ -200,7 +199,6 @@ struct SDDSRfCompactView: View { @StateObject private var loader: SDDSAllParamsL
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
-        }
     }
     
     // MARK: - Sector Table

@@ -155,7 +155,6 @@ struct SDDSSrPsStatusView: View {
     // MARK: - View
 
     var body: some View {
-        NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     if loader.items.isEmpty {
@@ -182,7 +181,6 @@ struct SDDSSrPsStatusView: View {
             .refreshable { loader.fetchStatus() }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
-        }
     }
 
     // MARK: - Family Table (10 rows × 40 columns)

@@ -19,7 +19,6 @@ struct SDDSAllParamsView: View {
     private let title: String
 
     var body: some View {
-        NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
                     if loader.items.isEmpty {
@@ -50,5 +49,4 @@ struct SDDSAllParamsView: View {
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
         }
-    }
 }

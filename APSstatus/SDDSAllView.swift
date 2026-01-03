@@ -8,15 +8,7 @@ struct SDDSAllView: View {
     ]
  
     private let baseURL = "https://ops.aps.anl.gov/sddsStatus/"
-    
-    // Shared loader for APS status + PSS
-    // @StateObject private var loader = SDDSShutterStatusLoader()
-
-    // NEW: shared loader for PSS data used by BeamlineSelectionView / Settings
-    // @StateObject private var pssLoader = SDDSAllParamsLoader(
-    //     urlString: "https://ops.aps.anl.gov/sddsStatus/PssData.sdds.gz"
-    // )
-    
+       
     //    https://ops.aps.anl.gov/sddsStatus/SrVacStatus.sdds.gz
     //    https://ops.aps.anl.gov/sddsStatus/mainStatus.sdds.gz
     //    https://ops.aps.anl.gov/sddsStatus/SCU0.sdds.gz
@@ -80,116 +72,118 @@ struct SDDSAllView: View {
     }
     
     var body: some View {
-        ZStack(alignment: .bottom) {
-            TabView(selection: $selection) {
-                // Page 0: Web status
-                WebStatusView(
-                    imageURLs: webStatusImageURLs
-                )
-                .tag(0)
-                
-                // Page 1: Shutter status / APS main status
-                SDDSShutterStatusView(
-                    mainStatusURL: baseURL + "mainStatus.sdds.gz",
-                    pssDataURL:    baseURL + "PssData.sdds.gz",
-                    title: "APS Status"
-                )
-                .tag(1)
-
-                // Page 2: PSS station searched/secure status
-                SDDSStationSearchedStatusView(
-                    urlString: baseURL + "PssData.sdds.gz",
-                    title: "PSS Station Status"
-                )
-                .tag(2)
-
-                // Page 3: APS LNDS Status
-                SDDSLNDSStatusView(
-                    urlString: baseURL + "LNDSData.sdds.gz",
-                    title: "APS LNDS Status"
-                )
-                .tag(3)
-
-                // Page 4: SR Vacuum Status
-                SDDSVacuumStatusView(
-                    urlString: baseURL + "SrVacStatus.sdds.gz",
-                    title: "SR Vacuum Status"
-                )
-                .tag(4)
-                
-                // Page 5: SR PS Status Detail
-                SDDSSrKlystronDataView(
-                    urlString: baseURL + "SRKlystronData.sdds.gz",
-                    title: "SR Klystron"
-                )
-                .tag(5)
-                
-                // Page 6: SR PS Status Detail
-                SDDSSrPsStatusView(
-                    urlString: baseURL + "SrPsStatus.sdds.gz",
-                    title: "APS Storage Ring PS Status Detail"
-                )
-                .tag(6)
-                
-                // Page 7: Compact SR RF summary
-                SDDSRfCompactView(
-                    urlString: baseURL + "SrRfSummary.sdds.gz",
-                    title: "SR RF Summary"
-                )
-                .tag(7)
-
-                // Page 8: SR PS Status Detail
-                SrPsSummaryView(
-                    urlString: baseURL + "SrPsSummary.sdds.gz",
-                    title: "SR PS Summary"
-                )
-                .tag(8)
-
-                // Remaining SDDS parameter pages (generic viewer)
-                ForEach(Array(sddsPages.enumerated()), id: \.element.file) { idx, entry in
-                    SDDSAllParamsView(
-                        urlString: baseURL + entry.file,
-                        title: entry.title
+        NavigationStack {
+            ZStack(alignment: .bottom) {
+                TabView(selection: $selection) {
+                    // Page 0: Web status
+                    WebStatusView(
+                        imageURLs: webStatusImageURLs
                     )
-                    .tag(9 + idx)
-                }
-            }
-            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never)) // NEW: hide system dots
-            // NEW: show dots on any touch; doesn't block swipes/taps in subviews
-            // NOTE: Removed the touch-capturing DragGesture(minimumDistance: 0) because it breaks controls in subviews (e.g., Settings beamline selection).
-            .onAppear {
-                showDotsThenAutoHide()
-            }
-            // NEW: show dots when the page changes (swipe left/right)
-            .onChange(of: selection) { _, _ in
-                showDotsThenAutoHide()
-            }
+                    .tag(0)
+                    
+                    // Page 1: Shutter status / APS main status
+                    SDDSShutterStatusView(
+                        mainStatusURL: baseURL + "mainStatus.sdds.gz",
+                        pssDataURL:    baseURL + "PssData.sdds.gz",
+                        title: "APS Status"
+                    )
+                    .tag(1)
 
-            // NEW: SwiftUI-only dots (tap to jump), auto-hide after 1s inactivity
-            if showDots {
-                HStack(spacing: 8) {
-                    ForEach(0..<totalPages, id: \.self) { i in
-                        Circle()
-                            .fill(i == selection ? Color.primary : Color.secondary.opacity(0.35))
-                            .frame(width: 7, height: 7)
-                            .contentShape(Rectangle()) // makes tapping easier
-                            .onTapGesture {
-                                // Touch shows dots and restarts timer
-                                showDotsThenAutoHide()
+                    // Page 2: PSS station searched/secure status
+                    SDDSStationSearchedStatusView(
+                        urlString: baseURL + "PssData.sdds.gz",
+                        title: "PSS Station Status"
+                    )
+                    .tag(2)
 
-                                // Instant jump (no rapid multi-swipe animation)
-                                selection = i
-                            }
-                            .accessibilityLabel("Page \(i + 1) of \(totalPages)")
-                            .accessibilityAddTraits(i == selection ? [.isSelected] : [])
+                    // Page 3: APS LNDS Status
+                    SDDSLNDSStatusView(
+                        urlString: baseURL + "LNDSData.sdds.gz",
+                        title: "APS LNDS Status"
+                    )
+                    .tag(3)
+
+                    // Page 4: SR Vacuum Status
+                    SDDSVacuumStatusView(
+                        urlString: baseURL + "SrVacStatus.sdds.gz",
+                        title: "SR Vacuum Status"
+                    )
+                    .tag(4)
+                    
+                    // Page 5: SR PS Status Detail
+                    SDDSSrKlystronDataView(
+                        urlString: baseURL + "SRKlystronData.sdds.gz",
+                        title: "SR Klystron"
+                    )
+                    .tag(5)
+                    
+                    // Page 6: SR PS Status Detail
+                    SDDSSrPsStatusView(
+                        urlString: baseURL + "SrPsStatus.sdds.gz",
+                        title: "APS Storage Ring PS Status Detail"
+                    )
+                    .tag(6)
+                    
+                    // Page 7: Compact SR RF summary
+                    SDDSRfCompactView(
+                        urlString: baseURL + "SrRfSummary.sdds.gz",
+                        title: "SR RF Summary"
+                    )
+                    .tag(7)
+
+                    // Page 8: SR PS Status Detail
+                    SrPsSummaryView(
+                        urlString: baseURL + "SrPsSummary.sdds.gz",
+                        title: "SR PS Summary"
+                    )
+                    .tag(8)
+
+                    // Remaining SDDS parameter pages (generic viewer)
+                    ForEach(Array(sddsPages.enumerated()), id: \.element.file) { idx, entry in
+                        SDDSAllParamsView(
+                            urlString: baseURL + entry.file,
+                            title: entry.title
+                        )
+                        .tag(9 + idx)
                     }
                 }
-                .padding(.vertical, 10)
-                .padding(.horizontal, 14)
-                .background(.ultraThinMaterial)
-                .clipShape(Capsule())
-                .padding(.bottom, 8)
-                .transition(.opacity)
+                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never)) // NEW: hide system dots
+                // NEW: show dots on any touch; doesn't block swipes/taps in subviews
+                // NOTE: Removed the touch-capturing DragGesture(minimumDistance: 0) because it breaks controls in subviews (e.g., Settings beamline selection).
+                .onAppear {
+                    showDotsThenAutoHide()
+                }
+                // NEW: show dots when the page changes (swipe left/right)
+                .onChange(of: selection) { _, _ in
+                    showDotsThenAutoHide()
+                }
+
+                // NEW: SwiftUI-only dots (tap to jump), auto-hide after 1s inactivity
+                if showDots {
+                    HStack(spacing: 8) {
+                        ForEach(0..<totalPages, id: \.self) { i in
+                            Circle()
+                                .fill(i == selection ? Color.primary : Color.secondary.opacity(0.35))
+                                .frame(width: 7, height: 7)
+                                .contentShape(Rectangle()) // makes tapping easier
+                                .onTapGesture {
+                                    // Touch shows dots and restarts timer
+                                    showDotsThenAutoHide()
+
+                                    // Instant jump (no rapid multi-swipe animation)
+                                    selection = i
+                                }
+                                .accessibilityLabel("Page \(i + 1) of \(totalPages)")
+                                .accessibilityAddTraits(i == selection ? [.isSelected] : [])
+                        }
+                    }
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 14)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Capsule())
+                    .padding(.bottom, 8)
+                    .transition(.opacity)
+                }
             }
         }
     }

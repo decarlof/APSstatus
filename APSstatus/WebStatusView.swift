@@ -10,80 +10,78 @@ struct WebStatusView: View {
     // NEW: modal presentation state
     @State private var showAbout = false
     @State private var showSettings = false
-    
+
     init(imageURLs: [String]) {
         self.imageURLs = imageURLs
     }
 
     var body: some View {
-        NavigationStack {
-            VStack {
-                ScrollView {
-                    VStack(spacing: 16) {
-                        ForEach(imageURLs, id: \.self) { url in
-                            AsyncImage(url: URL(string: url)) { phase in
-                                switch phase {
-                                case .empty:
-                                    ProgressView().frame(height: 220)
-                                case .success(let image):
-                                    image
-                                        .resizable()
-                                        .scaledToFit()
-                                        .cornerRadius(12)
-                                        .shadow(radius: 3)
-                                        .onTapGesture {
-                                            zoomImage = IdentifiableImage(image: image)
-                                        }
-                                case .failure:
-                                    VStack {
-                                        Image(systemName: "xmark.octagon")
-                                            .font(.largeTitle)
-                                            .foregroundColor(.red)
-                                        Text("Failed to load image")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
+        VStack {
+            ScrollView {
+                VStack(spacing: 16) {
+                    ForEach(imageURLs, id: \.self) { url in
+                        AsyncImage(url: URL(string: url)) { phase in
+                            switch phase {
+                            case .empty:
+                                ProgressView().frame(height: 220)
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFit()
+                                    .cornerRadius(12)
+                                    .shadow(radius: 3)
+                                    .onTapGesture {
+                                        zoomImage = IdentifiableImage(image: image)
                                     }
-                                    .frame(height: 220)
-                                @unknown default:
-                                    EmptyView()
+                            case .failure:
+                                VStack {
+                                    Image(systemName: "xmark.octagon")
+                                        .font(.largeTitle)
+                                        .foregroundColor(.red)
+                                    Text("Failed to load image")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
                                 }
+                                .frame(height: 220)
+                            @unknown default:
+                                EmptyView()
                             }
                         }
                     }
-                    .padding()
-                    .id(refreshID) // rebuild content to trigger AsyncImage reload
                 }
-                .refreshable {
-                    // Clear cache and force reload of AsyncImage
-                    URLCache.shared.removeAllCachedResponses()
-                    refreshID = UUID()
-                }
+                .padding()
+                .id(refreshID) // rebuild content to trigger AsyncImage reload
+            }
+            .refreshable {
+                // Clear cache and force reload of AsyncImage
+                URLCache.shared.removeAllCachedResponses()
+                refreshID = UUID()
+            }
 
-                HStack {
-                    Button("About") { showAbout = true }
-                    Spacer()
-                    Button("Settings") { showSettings = true }
+            HStack {
+                Button("About") { showAbout = true }
+                Spacer()
+                Button("Settings") { showSettings = true }
+            }
+            .padding(.horizontal)
+            .padding(.bottom)
+        }
+        .navigationTitle("APS Status")
+        .navigationBarTitleDisplayMode(.inline)
+        .fullScreenCover(item: $zoomImage) { wrapped in
+            ZoomableImageViewer(image: wrapped.image)
+        }
+        .sheet(isPresented: $showAbout) {
+            NavigationStack {
+                SwipeDownToDismissHint(title: "About") {
+                    AboutView()
                 }
-                .padding(.horizontal)
-                .padding(.bottom)
             }
-            .navigationTitle("APS Status")
-            .navigationBarTitleDisplayMode(.inline)
-            .fullScreenCover(item: $zoomImage) { wrapped in
-                ZoomableImageViewer(image: wrapped.image)
-            }
-            .sheet(isPresented: $showAbout) {
-                NavigationStack {
-                    SwipeDownToDismissHint(title: "About") {
-                        AboutView()
-                    }
-                }
-            }
-            .sheet(isPresented: $showSettings) {
-                NavigationStack {
-                    SwipeDownToDismissHint(title: "Settings") {
-                        SettingsView()
-                    }
+        }
+        .sheet(isPresented: $showSettings) {
+            NavigationStack {
+                SwipeDownToDismissHint(title: "Settings") {
+                    SettingsView()
                 }
             }
         }
