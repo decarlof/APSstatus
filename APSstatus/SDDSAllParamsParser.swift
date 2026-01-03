@@ -8,7 +8,7 @@
 import Foundation
 
 enum SDDSAllParamsParser {
-    static func parseAllParamsItems(_ data: Data) throws -> [(description: String, value: String)] {
+    nonisolated static func parseAllParamsItems(_ data: Data) throws -> [(description: String, value: String)] {
         var offset = 0
 
         // Read header lines until &data
@@ -164,7 +164,7 @@ enum SDDSAllParamsParser {
         return results
     }
 
-    private static func err(_ msg: String) -> NSError {
+    private nonisolated static func err(_ msg: String) -> NSError {
         NSError(domain: "SDDSAllParamsLoader", code: -1, userInfo: [NSLocalizedDescriptionKey: msg])
     }
 }
