@@ -60,6 +60,9 @@ struct SDDSAllView: View {
     // NEW: call this any time the user interacts to show dots and restart the 1s hide timer
     private func showDotsThenAutoHide() {
         showDots = true
+        // Page 0 always shows dots
+        if selection == 0 { return }
+        
         let taskID = UUID()
         hideDotsTaskID = taskID
         Task { @MainActor in
@@ -159,7 +162,7 @@ struct SDDSAllView: View {
                 }
 
                 // NEW: SwiftUI-only dots (tap to jump), auto-hide after 1s inactivity
-                if showDots {
+                if showDots || selection == 0 {
                     HStack(spacing: 8) {
                         ForEach(0..<totalPages, id: \.self) { i in
                             Circle()
