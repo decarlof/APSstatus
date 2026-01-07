@@ -157,7 +157,7 @@ struct SDDSAllView: View {
                     showDotsThenAutoHide()
                 }
                 // NEW: show dots when the page changes (swipe left/right)
-                .onChange(of: selection) { _, _ in
+                .onChange(of: selection) { _ in
                     showDotsThenAutoHide()
                 }
 
