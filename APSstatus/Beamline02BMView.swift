@@ -1,0 +1,24 @@
+//
+//  Beamline02BMView.swift
+//  APSstatus
+//
+//  Created by Francesco De Carlo on 1/8/26.
+//
+
+import SwiftUI
+
+struct Beamline02BMView: View {
+    var body: some View {
+        VStack(spacing: 12) {
+            Text("02-BM")
+                .font(.title2)
+                .fontWeight(.semibold)
+            Text("Work in progress")
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
+        .navigationTitle("02-BM")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
