@@ -181,8 +181,24 @@ auto_positions.sav*
 *.csv
 out.txt
 
-# xcode files #
-###############
+# Xcode / SwiftPM
+DerivedData/
+.build/
+*.xcscmblueprint
+*.xccheckout
+
+# User-specific Xcode data (never commit)
+**/xcuserdata/
+**/*.xcuserstate
+
+# SwiftPM (choose one strategy)
+# If you want to PIN package resolution (recommended for teams/CI), KEEP Package.resolved:
+# (do NOT ignore it)
+# **/Package.resolved
+
+# If you do NOT want to pin it, then ignore it instead:
+# **/Package.resolved
+
 APSstatus.xcodeproj/xcuserdata/
 **/*.xcuserstate
 APSstatus.xcodeproj/project.xcworkspace/contents.xcworkspacedata
