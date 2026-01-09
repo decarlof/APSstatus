@@ -180,3 +180,8 @@ auto_positions.sav*
 .iocsh_history
 *.csv
 out.txt
+
+# xcode files #
+###############
+APSstatus.xcodeproj/xcuserdata/
+**/*.xcuserstate
