@@ -4,15 +4,14 @@ struct WebStatusView: View {
     // Injected URLs
     private let imageURLs: [String]
 
+    @Binding var activeSheet: SDDSAllView.ActiveSheet?
+
     @State private var refreshID = UUID() // forces view rebuild on refresh
     @State private var zoomImage: IdentifiableImage? = nil
 
-    // NEW: modal presentation state
-    @State private var showAbout = false
-    @State private var showSettings = false
-
-    init(imageURLs: [String]) {
+    init(imageURLs: [String], activeSheet: Binding<SDDSAllView.ActiveSheet?>) {
         self.imageURLs = imageURLs
+        self._activeSheet = activeSheet
     }
 
     var body: some View {
@@ -59,9 +58,9 @@ struct WebStatusView: View {
             }
 
             HStack {
-                Button("About") { showAbout = true }
+                Button("About") { activeSheet = .about }
                 Spacer()
-                Button("Settings") { showSettings = true }
+                Button("Settings") { activeSheet = .settings }
             }
             .padding(.horizontal)
             .padding(.bottom)
@@ -71,47 +70,5 @@ struct WebStatusView: View {
         .fullScreenCover(item: $zoomImage) { wrapped in
             ZoomableImageViewer(image: wrapped.image)
         }
-        .sheet(isPresented: $showAbout) {
-            NavigationStack {
-                SwipeDownToDismissHint(title: "About") {
-                    AboutView()
-                }
-            }
-        }
-        .sheet(isPresented: $showSettings) {
-            NavigationStack {
-                SwipeDownToDismissHint(title: "Settings") {
-                    SettingsView()
-                }
-            }
-        }
-    }
-}
-
-struct SwipeDownToDismissHint<Content: View>: View {
-    let title: String
-    @ViewBuilder var content: Content
-
-    var body: some View {
-        VStack(spacing: 0) {
-            VStack(spacing: 6) {
-                // Visual grabber like Apple's sheets
-                Capsule()
-                    .fill(Color.secondary.opacity(0.45))
-                    .frame(width: 44, height: 5)
-                    .padding(.top, 10)
-
-                Text("Swipe down to close")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.bottom, 8)
-            }
-            .frame(maxWidth: .infinity)
-            .background(.ultraThinMaterial)
-
-            content
-        }
-        .navigationTitle(title)
-        .navigationBarTitleDisplayMode(.inline)
     }
 }
