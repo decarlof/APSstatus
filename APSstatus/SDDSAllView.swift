@@ -84,7 +84,8 @@ struct SDDSAllView: View {
         return order.filter { selected.contains($0) }
     }
 
-    // NEW: total page count (9 fixed pages + remaining generic pages)
+    // NEW: total page count (1 web page + 8 fixed SDDS pages + remaining generic pages + selected beamline pages)
+
     private var totalPages: Int { 9 + sddsPages.count + beamlinePagesInOrder.count }
 
     // NEW: show/hide dots after inactivity
@@ -139,73 +140,7 @@ struct SDDSAllView: View {
                     WebStatusView(imageURLs: webStatusImageURLs, activeSheet: $activeSheet)
                         .tag(0)
 
-                    // Page 1: Shutter status / APS main status
-                    SDDSShutterStatusView(
-                        mainStatusURL: baseURL + "mainStatus.sdds.gz",
-                        pssDataURL:    baseURL + "PssData.sdds.gz",
-                        title: "APS Status"
-                    )
-                    .tag(1)
-
-                    // Page 2: PSS station searched/secure status
-                    SDDSStationSearchedStatusView(
-                        urlString: baseURL + "PssData.sdds.gz",
-                        title: "PSS Station Status"
-                    )
-                    .tag(2)
-
-                    // Page 3: APS LNDS Status
-                    SDDSLNDSStatusView(
-                        urlString: baseURL + "LNDSData.sdds.gz",
-                        title: "APS LNDS Status"
-                    )
-                    .tag(3)
-
-                    // Page 4: SR Vacuum Status
-                    SDDSVacuumStatusView(
-                        urlString: baseURL + "SrVacStatus.sdds.gz",
-                        title: "SR Vacuum Status"
-                    )
-                    .tag(4)
-
-                    // Page 5: SR PS Status Detail
-                    SDDSSrKlystronDataView(
-                        urlString: baseURL + "SRKlystronData.sdds.gz",
-                        title: "SR Klystron"
-                    )
-                    .tag(5)
-
-                    // Page 6: SR PS Status Detail
-                    SDDSSrPsStatusView(
-                        urlString: baseURL + "SrPsStatus.sdds.gz",
-                        title: "APS Storage Ring PS Status Detail"
-                    )
-                    .tag(6)
-
-                    // Page 7: Compact SR RF summary
-                    SDDSRfCompactView(
-                        urlString: baseURL + "SrRfSummary.sdds.gz",
-                        title: "SR RF Summary"
-                    )
-                    .tag(7)
-
-                    // Page 8: SR PS Status Detail
-                    SrPsSummaryView(
-                        urlString: baseURL + "SrPsSummary.sdds.gz",
-                        title: "SR PS Summary"
-                    )
-                    .tag(8)
-
-                    // Remaining SDDS parameter pages (generic viewer)
-                    ForEach(Array(sddsPages.enumerated()), id: \.element.file) { idx, entry in
-                        SDDSAllParamsView(
-                            urlString: baseURL + entry.file,
-                            title: entry.title
-                        )
-                        .tag(9 + idx)
-                    }
-
-                    let beamlineBaseTag = 9 + sddsPages.count
+                    let beamlineBaseTag = 1
 
                     ForEach(Array(beamlinePagesInOrder.enumerated()), id: \.element) { idx, blID in
                         Group {
@@ -220,6 +155,74 @@ struct SDDSAllView: View {
                             }
                         }
                         .tag(beamlineBaseTag + idx)
+                    }
+
+                    let fixedPagesBaseTag = 1 + beamlinePagesInOrder.count
+
+                    // Page 1: Shutter status / APS main status
+                    SDDSShutterStatusView(
+                        mainStatusURL: baseURL + "mainStatus.sdds.gz",
+                        pssDataURL:    baseURL + "PssData.sdds.gz",
+                        title: "APS Status"
+                    )
+                    .tag(fixedPagesBaseTag + 0)
+
+                    // Page 2: PSS station searched/secure status
+                    SDDSStationSearchedStatusView(
+                        urlString: baseURL + "PssData.sdds.gz",
+                        title: "PSS Station Status"
+                    )
+                    .tag(fixedPagesBaseTag + 1)
+
+                    // Page 3: APS LNDS Status
+                    SDDSLNDSStatusView(
+                        urlString: baseURL + "LNDSData.sdds.gz",
+                        title: "APS LNDS Status"
+                    )
+                    .tag(fixedPagesBaseTag + 2)
+
+                    // Page 4: SR Vacuum Status
+                    SDDSVacuumStatusView(
+                        urlString: baseURL + "SrVacStatus.sdds.gz",
+                        title: "SR Vacuum Status"
+                    )
+                    .tag(fixedPagesBaseTag + 3)
+
+                    // Page 5: SR PS Status Detail
+                    SDDSSrKlystronDataView(
+                        urlString: baseURL + "SRKlystronData.sdds.gz",
+                        title: "SR Klystron"
+                    )
+                    .tag(fixedPagesBaseTag + 4)
+
+                    // Page 6: SR PS Status Detail
+                    SDDSSrPsStatusView(
+                        urlString: baseURL + "SrPsStatus.sdds.gz",
+                        title: "APS Storage Ring PS Status Detail"
+                    )
+                    .tag(fixedPagesBaseTag + 5)
+
+                    // Page 7: Compact SR RF summary
+                    SDDSRfCompactView(
+                        urlString: baseURL + "SrRfSummary.sdds.gz",
+                        title: "SR RF Summary"
+                    )
+                    .tag(fixedPagesBaseTag + 6)
+
+                    // Page 8: SR PS Status Detail
+                    SrPsSummaryView(
+                        urlString: baseURL + "SrPsSummary.sdds.gz",
+                        title: "SR PS Summary"
+                    )
+                    .tag(fixedPagesBaseTag + 7)
+
+                    // Remaining SDDS parameter pages (generic viewer)
+                    ForEach(Array(sddsPages.enumerated()), id: \.element.file) { idx, entry in
+                        SDDSAllParamsView(
+                            urlString: baseURL + entry.file,
+                            title: entry.title
+                        )
+                        .tag(fixedPagesBaseTag + 8 + idx)
                     }
                 }
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never)) // NEW: hide system dots
