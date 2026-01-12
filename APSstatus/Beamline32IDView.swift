@@ -8,17 +8,56 @@
 import SwiftUI
 
 struct Beamline32IDView: View {
+    private let urlString = "https://www3.xray.aps.anl.gov/tomolog/32id_monitor.png"
+
+    @State private var refreshID = UUID()
+    @State private var zoomImage: IdentifiableImage? = nil
+
     var body: some View {
-        VStack(spacing: 12) {
-            Text("32-ID")
-                .font(.title2)
-                .fontWeight(.semibold)
-            Text("Work in progress")
-                .foregroundStyle(.secondary)
+        ScrollView {
+            VStack(spacing: 16) {
+                AsyncImage(url: URL(string: urlString)) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView().frame(height: 240)
+
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFit()
+                            .cornerRadius(12)
+                            .shadow(radius: 3)
+                            .onTapGesture {
+                                zoomImage = IdentifiableImage(image: image)
+                            }
+
+                    case .failure:
+                        VStack {
+                            Image(systemName: "xmark.octagon")
+                                .font(.largeTitle)
+                                .foregroundColor(.red)
+                            Text("Failed to load image")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(height: 240)
+
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+            }
+            .padding()
+            .id(refreshID)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
+        .refreshable {
+            URLCache.shared.removeAllCachedResponses()
+            refreshID = UUID()
+        }
         .navigationTitle("32-ID")
         .navigationBarTitleDisplayMode(.inline)
+        .fullScreenCover(item: $zoomImage) { wrapped in
+            ZoomableImageViewer(image: wrapped.image)
+        }
     }
 }
