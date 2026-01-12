@@ -36,6 +36,12 @@ import time
 import math
 from datetime import datetime
 
+import os, sys
+
+# optional: force TkAgg on macOS when viewing
+if "--view" in sys.argv and sys.platform == "darwin":
+    os.environ.setdefault("MPLBACKEND", "TkAgg")
+
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle

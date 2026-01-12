@@ -2,10 +2,9 @@
 #
 # Matplotlib-only 2-BM Monitor PNG generator (+ optional --view).
 #
-# Update in this revision:
-# - Move SP1/SP2 camera PVs into PV_DISPLAY and display them.
-# - DummyPVSource provides values for both SP1 and SP2 PVs, but the
-#   dashboard displays only the active set based on CameraSelected.
+# Updates in this revision:
+# - Display AcquireBusy for SP1/SP2 (Done/Acquiring)
+# - Dummy DetectorState_RBV now returns Idle/Waiting (strings)
 #
 # Usage:
 #   python 02bm_PV_monitor_plot.py            # headless: saves PNG once/min, no window
@@ -28,7 +27,7 @@ class DummyPVSource:
     Provides dummy values for:
       - Energy, EnergyMode, Ring Current, Shutter A/B
       - CameraSelected (flips 0/1 each refresh)
-      - SP1 and SP2 PVs (both populated), dashboard chooses which to show
+      - SP1/SP2 PVs including DetectorState_RBV (Idle/Waiting) and AcquireBusy (Done/Acquiring)
     """
     def __init__(self):
         self.t0 = time.time()
@@ -62,17 +61,21 @@ class DummyPVSource:
         if pv_name == "2bm:MCTOptics:CameraSelected.VAL":
             return self._camera_selected
 
-        # Always provide SP1 dummy values
+        # SP1
         if pv_name == "2bmSP1:cam1:DetectorState_RBV":
-            return 1 if (self._tick % 5) else 0
+            return "Idle" if (self._tick % 4) else "Waiting"
+        if pv_name == "2bmSP1:cam1:AcquireBusy":
+            return "Acquiring" if (self._tick % 6 in (0, 1, 2)) else "Done"
         if pv_name == "2bmSP1:cam1:TemperatureActual":
             return 25.0 + 0.6 * math.sin(t / 10.0)
         if pv_name == "2bmSP1:HDF1:FileNumber_RBV":
             return 1000 + self._tick
 
-        # Always provide SP2 dummy values (different ranges to make it obvious)
+        # SP2
         if pv_name == "2bmSP2:cam1:DetectorState_RBV":
-            return 1 if (self._tick % 3) else 0
+            return "Idle" if (self._tick % 3) else "Waiting"
+        if pv_name == "2bmSP2:cam1:AcquireBusy":
+            return "Acquiring" if (self._tick % 5 in (0, 1)) else "Done"
         if pv_name == "2bmSP2:cam1:TemperatureActual":
             return 28.0 + 0.7 * math.sin(t / 9.0)
         if pv_name == "2bmSP2:HDF1:FileNumber_RBV":
@@ -105,19 +108,21 @@ def render_2bm_dashboard(fig, caget_func, pv, out_png=None):
 
     # read both sets (dashboard will decide which to display)
     sp1_state = caget_func(pv["SP1 Detector State"])
+    sp1_busy = caget_func(pv["SP1 Acquire Busy"])
     sp1_temp = caget_func(pv["SP1 Temperature"])
     sp1_file = caget_func(pv["SP1 File Number"])
 
     sp2_state = caget_func(pv["SP2 Detector State"])
+    sp2_busy = caget_func(pv["SP2 Acquire Busy"])
     sp2_temp = caget_func(pv["SP2 Temperature"])
     sp2_file = caget_func(pv["SP2 File Number"])
 
     if str(cam_sel).strip() in ("0", "0.0"):
         cam_label = "SP1"
-        det_state, det_temp, det_file = sp1_state, sp1_temp, sp1_file
+        det_state, acq_busy, det_temp, det_file = sp1_state, sp1_busy, sp1_temp, sp1_file
     else:
         cam_label = "SP2"
-        det_state, det_temp, det_file = sp2_state, sp2_temp, sp2_file
+        det_state, acq_busy, det_temp, det_file = sp2_state, sp2_busy, sp2_temp, sp2_file
 
     fig.clf()
     fig.set_facecolor("#1e1e1e")
@@ -167,7 +172,7 @@ def render_2bm_dashboard(fig, caget_func, pv, out_png=None):
     shutter_button(ax_sh, 0.10, 0.38, "Shutter A", _shutter_color_open_pl(sh_a), sh_a)
     shutter_button(ax_sh, 0.52, 0.38, "Shutter B", _shutter_color_open_pl(sh_b), sh_b)
 
-    # Camera section (new)
+    # Camera section
     ax_cam = fig.add_subplot(gs[5:8, :])
     ax_cam.set_axis_off()
     ax_cam.add_patch(Rectangle((0, 0), 1, 1, transform=ax_cam.transAxes,
@@ -177,16 +182,16 @@ def render_2bm_dashboard(fig, caget_func, pv, out_png=None):
                 transform=ax_cam.transAxes, ha="left", va="top",
                 fontsize=12, color="white", fontweight="bold")
 
-    # 3 readouts for active camera
     def small_kv(ax, y, key, val):
         ax.text(0.03, y, key, transform=ax.transAxes, ha="left", va="center",
                 fontsize=11, color="#cfcfcf")
         ax.text(0.55, y, val, transform=ax.transAxes, ha="left", va="center",
                 fontsize=12, color="white", fontweight="bold")
 
-    small_kv(ax_cam, 0.62, f"{cam_label} DetectorState_RBV", _fmt(det_state, 0))
-    small_kv(ax_cam, 0.42, f"{cam_label} TemperatureActual", _fmt(det_temp, 2))
-    small_kv(ax_cam, 0.22, f"{cam_label} HDF1 FileNumber_RBV", _fmt(det_file, 0))
+    small_kv(ax_cam, 0.68, f"{cam_label} DetectorState_RBV", _fmt(det_state, 0))
+    small_kv(ax_cam, 0.50, f"{cam_label} AcquireBusy", _fmt(acq_busy, 0))
+    small_kv(ax_cam, 0.32, f"{cam_label} TemperatureActual", _fmt(det_temp, 2))
+    small_kv(ax_cam, 0.14, f"{cam_label} HDF1 FileNumber_RBV", _fmt(det_file, 0))
 
     # Placeholder for future PVs
     ax_future = fig.add_subplot(gs[8:, :])
@@ -216,17 +221,17 @@ PV_DISPLAY = {
 
     "Camera Selected": "2bm:MCTOptics:CameraSelected.VAL",
 
-    # moved into PV_DISPLAY
     "SP1 Detector State": "2bmSP1:cam1:DetectorState_RBV",
+    "SP1 Acquire Busy": "2bmSP1:cam1:AcquireBusy",
     "SP1 Temperature": "2bmSP1:cam1:TemperatureActual",
     "SP1 File Number": "2bmSP1:HDF1:FileNumber_RBV",
 
     "SP2 Detector State": "2bmSP2:cam1:DetectorState_RBV",
+    "SP2 Acquire Busy": "2bmSP2:cam1:AcquireBusy",
     "SP2 Temperature": "2bmSP2:cam1:TemperatureActual",
     "SP2 File Number": "2bmSP2:HDF1:FileNumber_RBV",
 }
 
-# keep the rest as "future" (not displayed yet)
 FUTURE_PVS = [
     "S02BM-FEEPS:FES_PermitM",
     "2bm:MCTOptics:MCTStatus",
