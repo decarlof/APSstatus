@@ -465,7 +465,7 @@ def render_2bm_dashboard(fig, source, pv, out_png=None):
     # Title
     ax_title = fig.add_subplot(gs[0, :])
     ax_title.set_axis_off()
-    ax_title.text(0.0, 0.7, "2-BM Monitor", fontsize=16, fontweight="bold",
+    ax_title.text(0.0, 0.7, "microCT Monitor", fontsize=16, fontweight="bold",
                   color="white", ha="left", va="center")
     ax_title.text(1.0, 0.7, datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                   fontsize=9.5, color="#cfcfcf", ha="right", va="center")
