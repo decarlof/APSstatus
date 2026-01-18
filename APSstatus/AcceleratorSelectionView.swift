@@ -17,7 +17,7 @@ struct AcceleratorSelectionView: View {
 
     private var allPages: [AcceleratorPageID] { AcceleratorPageID.curated }
 
-    private let maxSelection: Int = 3
+    private let maxSelection: Int = 4
 
     var body: some View {
         ScrollView {
@@ -25,7 +25,7 @@ struct AcceleratorSelectionView: View {
 
                 // Select all / none row
                 HStack {
-                    Button("Select Top 3") { selectTop3() }
+                    Button("Select Top 4") { selectTop4() }
                     Spacer()
                     Button("Select None") { selectNone() }
                         .foregroundColor(.red)
@@ -59,7 +59,7 @@ struct AcceleratorSelectionView: View {
                     .padding(.horizontal)
                     .multilineTextAlignment(.center)
 
-                Text("(up to 3)")
+                Text("(up to 4)")
                     .font(.caption2)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -127,7 +127,7 @@ struct AcceleratorSelectionView: View {
         saveSelection()
     }
 
-    private func selectTop3() {
+    private func selectTop4() {
         selectedIDs = Set(allPages.prefix(maxSelection).map { $0.id })
         saveSelection()
     }

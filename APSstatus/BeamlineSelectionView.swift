@@ -19,7 +19,7 @@ struct BeamlineSelectionView: View {
         BeamlineID.curated
     }
 
-    private let maxSelection: Int = 3
+    private let maxSelection: Int = 4
 
     var body: some View {
         ScrollView {
@@ -27,7 +27,7 @@ struct BeamlineSelectionView: View {
 
                 // Select all / none row
                 HStack {
-                    Button("Select Top 3") {
+                    Button("Select Top 4") {
                         selectAll()
                     }
                     Spacer()
@@ -65,7 +65,7 @@ struct BeamlineSelectionView: View {
                     .padding(.horizontal)
                     .multilineTextAlignment(.center)
 
-                Text("(up to 3)")
+                Text("(up to 4)")
                     .font(.caption2)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
