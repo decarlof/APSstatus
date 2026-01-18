@@ -61,6 +61,9 @@ struct SDDSAllView: View {
     @AppStorage(BeamlineSelectionKeys.selectedBeamlines)
     private var selectedBeamlinesData: Data = Data()
 
+    @AppStorage(AcceleratorSelectionKeys.selectedAcceleratorPages)
+    private var selectedAcceleratorPagesData: Data = Data()
+
     // Tracks whether Settings/About sheet is currently presented from page 0
     @State private var isPresentingSheet: Bool = false
 
@@ -70,9 +73,19 @@ struct SDDSAllView: View {
     // Latest decoded selection (updates while sheet is open, but does not change pager)
     @State private var pendingBeamlineIDs: [String] = []
 
+    @State private var appliedAcceleratorPageIDs: [String] = []
+    @State private var pendingAcceleratorPageIDs: [String] = []
+
     private func decodeSelectedBeamlines() -> [String] {
         guard !selectedBeamlinesData.isEmpty,
               let decoded = try? JSONDecoder().decode([String].self, from: selectedBeamlinesData)
+        else { return [] }
+        return decoded
+    }
+
+    private func decodeSelectedAcceleratorPages() -> [String] {
+        guard !selectedAcceleratorPagesData.isEmpty,
+              let decoded = try? JSONDecoder().decode([String].self, from: selectedAcceleratorPagesData)
         else { return [] }
         return decoded
     }
@@ -84,9 +97,15 @@ struct SDDSAllView: View {
         return order.filter { selected.contains($0) }
     }
 
+    private var acceleratorPagesInOrder: [String] {
+        let order = AcceleratorPageID.curated.map { $0.id }
+        let selected = Set(appliedAcceleratorPageIDs)
+        return order.filter { selected.contains($0) }
+    }
+
     // NEW: total page count (1 web page + 8 fixed SDDS pages + remaining generic pages + selected beamline pages)
 
-    private var totalPages: Int { 9 + sddsPages.count + beamlinePagesInOrder.count }
+    private var totalPages: Int { 2 + beamlinePagesInOrder.count + acceleratorPagesInOrder.count + sddsPages.count }
 
     // NEW: show/hide dots after inactivity
     @State private var showDots: Bool = true
@@ -167,54 +186,48 @@ struct SDDSAllView: View {
 
                     let fixedPagesBaseTag = 2 + beamlinePagesInOrder.count
 
-                    // Page 2: PSS station searched/secure status
-                    SDDSStationSearchedStatusView(
-                        urlString: baseURL + "PssData.sdds.gz",
-                        title: "Accelerator PSS Station Status"
-                    )
-                    .tag(fixedPagesBaseTag + 0)
-
-                    // Page 3: APS LNDS Status
-                    SDDSLNDSStatusView(
-                        urlString: baseURL + "LNDSData.sdds.gz",
-                        title: "Accelerator LNDS Status"
-                    )
-                    .tag(fixedPagesBaseTag + 1)
-
-                    // Page 4: SR Vacuum Status
-                    SDDSVacuumStatusView(
-                        urlString: baseURL + "SrVacStatus.sdds.gz",
-                        title: "Accelerator Vacuum Status"
-                    )
-                    .tag(fixedPagesBaseTag + 2)
-
-                    // Page 5: SR PS Status Detail
-                    SDDSSrKlystronDataView(
-                        urlString: baseURL + "SRKlystronData.sdds.gz",
-                        title: "Accelerator Klystron Status"
-                    )
-                    .tag(fixedPagesBaseTag + 3)
-
-                    // Page 7: Compact SR RF summary
-                    SDDSRfCompactView(
-                        urlString: baseURL + "SrRfSummary.sdds.gz",
-                        title: "Accelerator RF Status"
-                    )
-                    .tag(fixedPagesBaseTag + 4)
-
-                    // Page 8: SR PS Status Detail
-                    SrPsSummaryView(
-                        urlString: baseURL + "SrPsSummary.sdds.gz",
-                        title: "Accelerator PS Status"
-                    )
-                    .tag(fixedPagesBaseTag + 5)
-
-                    // Page 6: SR PS Status Detail
-                    SDDSSrPsStatusView(
-                        urlString: baseURL + "SrPsStatus.sdds.gz",
-                        title: "Accelerator PS Status Detail"
-                    )
-                    .tag(fixedPagesBaseTag + 6)
+                    ForEach(Array(acceleratorPagesInOrder.enumerated()), id: \.element) { idx, pageID in
+                        Group {
+                            if pageID == "aps_lnds_status" {
+                                // Page 3: APS LNDS Status
+                                SDDSLNDSStatusView(
+                                    urlString: baseURL + "LNDSData.sdds.gz",
+                                    title: "Accelerator LNDS Status"
+                                )
+                            } else if pageID == "sr_vacuum_status" {
+                                // Page 4: SR Vacuum Status
+                                SDDSVacuumStatusView(
+                                    urlString: baseURL + "SrVacStatus.sdds.gz",
+                                    title: "Accelerator Vacuum Status"
+                                )
+                            } else if pageID == "sr_klystron" {
+                                // Page 5: SR PS Status Detail
+                                SDDSSrKlystronDataView(
+                                    urlString: baseURL + "SRKlystronData.sdds.gz",
+                                    title: "Accelerator Klystron Status"
+                                )
+                            } else if pageID == "sr_rf_summary" {
+                                // Page 7: Compact SR RF summary
+                                SDDSRfCompactView(
+                                    urlString: baseURL + "SrRfSummary.sdds.gz",
+                                    title: "Accelerator RF Status"
+                                )
+                            } else if pageID == "sr_ps_summary" {
+                                // Page 8: SR PS Status Detail
+                                SrPsSummaryView(
+                                    urlString: baseURL + "SrPsSummary.sdds.gz",
+                                    title: "Accelerator PS Status"
+                                )
+                            } else if pageID == "sr_ps_detail" {
+                                // Page 6: SR PS Status Detail
+                                SDDSSrPsStatusView(
+                                    urlString: baseURL + "SrPsStatus.sdds.gz",
+                                    title: "Accelerator PS Status Detail"
+                                )
+                            }
+                        }
+                        .tag(fixedPagesBaseTag + idx)
+                    }
 
                     // Remaining SDDS parameter pages (generic viewer)
                     ForEach(Array(sddsPages.enumerated()), id: \.element.file) { idx, entry in
@@ -222,7 +235,7 @@ struct SDDSAllView: View {
                             urlString: baseURL + entry.file,
                             title: entry.title
                         )
-                        .tag(fixedPagesBaseTag + 7 + idx)
+                        .tag(fixedPagesBaseTag + acceleratorPagesInOrder.count + idx)
                     }
                 }
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never)) // NEW: hide system dots
@@ -232,6 +245,11 @@ struct SDDSAllView: View {
                     let decoded = decodeSelectedBeamlines()
                     pendingBeamlineIDs = decoded
                     appliedBeamlineIDs = decoded
+
+                    let decodedAccelerator = decodeSelectedAcceleratorPages()
+                    pendingAcceleratorPageIDs = decodedAccelerator
+                    appliedAcceleratorPageIDs = decodedAccelerator
+
                     if selection != 0 {
                         showDotsThenAutoHide()
                     }
@@ -243,6 +261,18 @@ struct SDDSAllView: View {
                     guard !isPresentingSheet else { return }
 
                     appliedBeamlineIDs = pendingBeamlineIDs
+
+                    if selection >= totalPages {
+                        selection = max(0, totalPages - 1)
+                    }
+                }
+                .onChange(of: selectedAcceleratorPagesData) { _ in
+                    pendingAcceleratorPageIDs = decodeSelectedAcceleratorPages()
+
+                    // If Settings/About is open, do NOT change the pager structure.
+                    guard !isPresentingSheet else { return }
+
+                    appliedAcceleratorPageIDs = pendingAcceleratorPageIDs
 
                     if selection >= totalPages {
                         selection = max(0, totalPages - 1)
@@ -305,6 +335,7 @@ struct SDDSAllView: View {
                 isPresentingSheet = (newValue != nil)
                 if newValue == nil {
                     appliedBeamlineIDs = pendingBeamlineIDs
+                    appliedAcceleratorPageIDs = pendingAcceleratorPageIDs
                     if selection >= totalPages {
                         selection = max(0, totalPages - 1)
                     }

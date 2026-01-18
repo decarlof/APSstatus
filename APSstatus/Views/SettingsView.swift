@@ -17,6 +17,16 @@ struct SettingsView: View {
                     BeamlineSelectionView()
                 }
             }
+            Section(header: Text("Accelerator")) {
+                Text("Select the accelerator status pages you are interested in.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                NavigationLink("Accelerator Selection") {
+                    AcceleratorSelectionView()
+                }
+            }
 
             Section(header: Text("Preferences")) {
                 Toggle("Enable Notifications", isOn: $enableNotifications)

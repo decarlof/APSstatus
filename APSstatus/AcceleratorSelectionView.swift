@@ -1,23 +1,21 @@
 //
-//  BeamlineSelectionView.swift
+//  AcceleratorSelectionView.swift
 //  APSstatus
 //
-//  Created by Francesco De Carlo on 12/6/25.
+//  Created by Francesco De Carlo on 1/17/26.
 //
 
 import SwiftUI
 
-struct BeamlineSelectionView: View {
+struct AcceleratorSelectionView: View {
     // Persist selection using AppStorage (UserDefaults)
-    @AppStorage(BeamlineSelectionKeys.selectedBeamlines)
-    private var selectedBeamlinesData: Data = Data()
+    @AppStorage(AcceleratorSelectionKeys.selectedAcceleratorPages)
+    private var selectedPagesData: Data = Data()
 
     // In-memory selection
     @State private var selectedIDs: Set<String> = []
 
-    private var allBeamlines: [BeamlineID] {
-        BeamlineID.curated
-    }
+    private var allPages: [AcceleratorPageID] { AcceleratorPageID.curated }
 
     private let maxSelection: Int = 3
 
@@ -27,14 +25,10 @@ struct BeamlineSelectionView: View {
 
                 // Select all / none row
                 HStack {
-                    Button("Select Top 3") {
-                        selectAll()
-                    }
+                    Button("Select Top 3") { selectTop3() }
                     Spacer()
-                    Button("Select None") {
-                        selectNone()
-                    }
-                    .foregroundColor(.red)
+                    Button("Select None") { selectNone() }
+                        .foregroundColor(.red)
                 }
                 .padding(.horizontal)
 
@@ -47,7 +41,6 @@ struct BeamlineSelectionView: View {
                         Text("Selected")
                             .font(.caption2)
                     }
-
                     HStack(spacing: 4) {
                         RoundedRectangle(cornerRadius: 4)
                             .fill(Color.gray.opacity(0.4))
@@ -58,8 +51,9 @@ struct BeamlineSelectionView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.horizontal)
+
                 // help text
-                Text("Select the beamlines you are interested in. If you would like a custom beamline status page, please provide the EPICS PVs for your beamline so they can be included in a future update.")
+                Text("Select the accelerator status pages you are interested in.")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .padding(.horizontal)
@@ -71,12 +65,12 @@ struct BeamlineSelectionView: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.horizontal)
 
-                // All beamlines as boxes, arranged in rows of up to 6 (like shutter grid)
+                // All pages as boxes, arranged in rows of up to 6 (like shutter grid)
                 let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 6)
 
                 LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
-                    ForEach(allBeamlines) { bl in
-                        beamlineBox(bl)
+                    ForEach(allPages) { page in
+                        acceleratorBox(page)
                     }
                 }
                 .padding(.horizontal, 8)
@@ -84,24 +78,21 @@ struct BeamlineSelectionView: View {
             }
             .padding(.vertical, 8)
         }
-        .onAppear {
-            loadSelection()
-        }
-        .navigationTitle("Beamline Selection")
+        .onAppear { loadSelection() }
+        .navigationTitle("Accelerator Selection")
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    // MARK: - Beamline box
-
-    private func beamlineBox(_ bl: BeamlineID) -> some View {
-        let isSelected = selectedIDs.contains(bl.id)
+    // MARK: - Page box
+    private func acceleratorBox(_ page: AcceleratorPageID) -> some View {
+        let isSelected = selectedIDs.contains(page.id)
         let selectionIsFull = selectedIDs.count >= maxSelection
         let canSelect = isSelected || !selectionIsFull
 
         let color = isSelected ? Color.green : Color.gray.opacity(0.4)
 
         return Button {
-            toggle(bl)
+            toggle(page)
         } label: {
             ZStack {
                 RoundedRectangle(cornerRadius: 6)
@@ -111,7 +102,7 @@ struct BeamlineSelectionView: View {
                             .stroke(Color.black.opacity(0.2), lineWidth: 1)
                     )
 
-                Text(bl.displayName) // e.g. "01-BM"
+                Text(page.displayName)
                     .font(.caption)
                     .fontWeight(.semibold)
                     .foregroundColor(.white)
@@ -126,19 +117,18 @@ struct BeamlineSelectionView: View {
     }
 
     // MARK: - Selection
-
-    private func toggle(_ bl: BeamlineID) {
-        if selectedIDs.contains(bl.id) {
-            selectedIDs.remove(bl.id)
+    private func toggle(_ page: AcceleratorPageID) {
+        if selectedIDs.contains(page.id) {
+            selectedIDs.remove(page.id)
         } else {
             guard selectedIDs.count < maxSelection else { return }
-            selectedIDs.insert(bl.id)
+            selectedIDs.insert(page.id)
         }
         saveSelection()
     }
 
-    private func selectAll() {
-        selectedIDs = Set(allBeamlines.prefix(maxSelection).map { $0.id })
+    private func selectTop3() {
+        selectedIDs = Set(allPages.prefix(maxSelection).map { $0.id })
         saveSelection()
     }
 
@@ -148,37 +138,36 @@ struct BeamlineSelectionView: View {
     }
 
     // MARK: - Persistence
-
     private func saveSelection() {
         // Enforce maxSelection deterministically (stable order)
-        let allowedOrder = allBeamlines.map { $0.id }
+        let allowedOrder = allPages.map { $0.id }
         let trimmed = allowedOrder.filter { selectedIDs.contains($0) }.prefix(maxSelection)
         selectedIDs = Set(trimmed)
 
         let idsArray = Array(selectedIDs)
         do {
             let data = try JSONEncoder().encode(idsArray)
-            selectedBeamlinesData = data
+            selectedPagesData = data
         } catch {
-            print("Failed to encode beamline selection: \(error)")
+            print("Failed to encode accelerator selection: \(error)")
         }
     }
 
     private func loadSelection() {
-        guard !selectedBeamlinesData.isEmpty else {
+        guard !selectedPagesData.isEmpty else {
             selectedIDs = []
             return
         }
         do {
-            let decoded = try JSONDecoder().decode([String].self, from: selectedBeamlinesData)
+            let decoded = try JSONDecoder().decode([String].self, from: selectedPagesData)
 
             // Enforce maxSelection deterministically (stable order)
-            let allowedOrder = allBeamlines.map { $0.id }
+            let allowedOrder = allPages.map { $0.id }
             let decodedSet = Set(decoded)
             let trimmed = allowedOrder.filter { decodedSet.contains($0) }.prefix(maxSelection)
             selectedIDs = Set(trimmed)
         } catch {
-            print("Failed to decode beamline selection: \(error)")
+            print("Failed to decode accelerator selection: \(error)")
             selectedIDs = []
         }
     }
