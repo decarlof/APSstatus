@@ -1,22 +1,23 @@
-//
-//  Beamline32IDView.swift
-//  APSstatus
-//
-//  Created by Francesco De Carlo on 1/8/26.
-//
-
 import SwiftUI
 
 struct Beamline32IDView: View {
-    private let urlString = "https://www3.xray.aps.anl.gov/tomolog/32id_monitor.png"
+    private let baseURLString = "https://www3.xray.aps.anl.gov/tomolog/32id_monitor.png"
 
-    @State private var refreshID = UUID()
+    @State private var refreshToken = UUID()
     @State private var zoomImage: IdentifiableImage? = nil
+
+    private var imageURL: URL? {
+        var comps = URLComponents(string: baseURLString)
+        var items = comps?.queryItems ?? []
+        items.append(URLQueryItem(name: "t", value: refreshToken.uuidString))
+        comps?.queryItems = items
+        return comps?.url
+    }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                AsyncImage(url: URL(string: urlString)) { phase in
+                AsyncImage(url: imageURL) { phase in
                     switch phase {
                     case .empty:
                         ProgressView().frame(height: 240)
@@ -48,11 +49,10 @@ struct Beamline32IDView: View {
                 }
             }
             .padding()
-            .id(refreshID)
         }
         .refreshable {
-            URLCache.shared.removeAllCachedResponses()
-            refreshID = UUID()
+            // Cache-bust the URL so iPhone fetches a fresh image even if an upstream cache is stale
+            refreshToken = UUID()
         }
         .navigationTitle("32-ID")
         .navigationBarTitleDisplayMode(.inline)
