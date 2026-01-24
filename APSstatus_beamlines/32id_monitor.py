@@ -538,8 +538,9 @@ def main():
                         help="Show a live-updating window (also saves PNG).")
     parser.add_argument("--dummy", action="store_true",
                         help="Use dummy PV values (and synthetic image) instead of EPICS/PVA.")
-    parser.add_argument("--out", default="32id_monitor.png",
-                        help="Output PNG path.")
+    parser.add_argument("--out", default="/net/joulefs/coulomb_Public/docroot/tomolog/32id_monitor.png",
+                    help="Output PNG path.")
+
     parser.add_argument("--period", type=int, default=60,
                         help="Update period in seconds.")
     args = parser.parse_args()
