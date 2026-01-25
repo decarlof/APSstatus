@@ -8,19 +8,10 @@
 # - EPICS PVA detector image via PvaPy/pvapy (module: pvaccess)
 # - Optional --dummy mode for offline testing (includes synthetic image)
 #
-# Changes vs 2-BM version:
-# - Beamline name: 32-ID
-# - Single detector only (prefix: 32idbSP1:)
-# - Shutter PVs:
-#     A: PB:32ID:STA_A_FES_CLSD_PL
-#     B: PB:32ID:STA_B_SBS_CLSD_PL
-# - TomoScan prefixes:
-#     32id:TomoScan..., 32id:TomoScanStream..., 32id:TomoStream...
-# - Optics prefix:
-#     32id:TXMOptics:...
-# - Energy PV:
-#     S32ID:USID:EnergyM.VAL
-# - Energy server PVs removed from IOC table
+# Updates (Jan 2026):
+# - Removed placeholder Mode PV (2bm:Energy:EnergyMode) since it does not exist at 32-ID
+# - TXMOptics status PV changed to: 32id:TXMOptics:TXMOpticsStatus
+# - Readout row now shows: Current, Energy ID, Energy DCM (from 32id:TXMOptics:Energy)
 #
 # Usage:
 #   python 32id_PV_monitor_plot.py                 # EPICS+PVA, headless PNG loop
@@ -30,10 +21,6 @@
 #
 # Requirements:
 #   pip install matplotlib numpy pyepics pvapy
-#
-# Notes:
-# - Mode/Acquire are read as strings via caget(..., as_string=True).
-# - For "red if not found/timeout", we use caget(timeout=...) and treat None as red.
 
 import argparse
 import time
@@ -60,7 +47,7 @@ IOC_GROUPS = [
     {
         "label": "TXMOptics",
         "running_pv": "32id:TXMOptics:ServerRunning",
-        "status_pv": "32id:TXMOptics:MCTStatus",
+        "status_pv": "32id:TXMOptics:TXMOpticsStatus",
         "mode": "server_running",
     },
     {
@@ -103,8 +90,8 @@ class DummyPVSource:
         if pv_name == "S32ID:USID:EnergyM.VAL":
             return 60.0 + 2.0 * math.sin(t / 15.0)
 
-        if pv_name == "2bm:Energy:EnergyMode":  # not used, but keep placeholder if needed
-            return "Mono"
+        if pv_name == "32id:TXMOptics:Energy":
+            return 60.0 + 1.0 * math.sin(t / 20.0)  # dummy DCM energy
 
         if pv_name == "S:SRcurrentAI.VAL":
             return 100.0 + 3.0 * math.sin(t / 30.0)
@@ -122,7 +109,7 @@ class DummyPVSource:
         # IOC status demo PVs
         if pv_name.endswith(":ServerRunning"):
             return "Running" if (self._tick % 6) else "Stopped"
-        if pv_name.endswith(":MCTStatus"):
+        if pv_name.endswith(":TXMOpticsStatus"):
             return "OK (dummy)"
         if pv_name.endswith(":ScanStatus"):
             return "Idle (dummy)"
@@ -295,7 +282,7 @@ def _shutter_color_closed_pl(v):
     if v is None:
         return "red"
     s = str(v).strip()
-    return "red" if s in ("1", "1.0") else "green"
+    return "red" if s in ("1", "1.0", "ON") else "green"
 
 def dot_color_for_running(val, mode):
     if val is None:
@@ -349,9 +336,10 @@ def add_scale_bar(ax, img_shape, um_per_px, bar_um=200.0, margin_px=20, height_p
 # ----------------------------
 
 PV_DISPLAY = {
-    "Energy": "S32ID:USID:EnergyM.VAL",
-    "Mode": "2bm:Energy:EnergyMode",  # if you have a 32-ID mode PV, replace it here
     "Current": "S:SRcurrentAI.VAL",
+
+    "Energy ID": "S32ID:USID:EnergyM.VAL",
+    "Energy DCM": "32id:TXMOptics:Energy",
 
     "Shutter A": "PB:32ID:STA_A_FES_CLSD_PL",
     "Shutter B": "PB:32ID:STA_B_SBS_CLSD_PL",
@@ -373,9 +361,9 @@ PV_DISPLAY = {
 def render_dashboard(fig, source, pv, out_png=None):
     caget_func = source.caget
 
-    energy = caget_num(caget_func, pv["Energy"], timeout=0.3)
-    mode = caget_str(caget_func, pv["Mode"], timeout=0.3)
     current = caget_num(caget_func, pv["Current"], timeout=0.3)
+    energy_id = caget_num(caget_func, pv["Energy ID"], timeout=0.3)
+    energy_dcm = caget_num(caget_func, pv["Energy DCM"], timeout=0.3)
 
     sh_a = caget_num(caget_func, pv["Shutter A"], timeout=0.3)
     sh_b = caget_num(caget_func, pv["Shutter B"], timeout=0.3)
@@ -409,7 +397,7 @@ def render_dashboard(fig, source, pv, out_png=None):
     ax_title.text(1.0, 0.7, datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                   fontsize=9.5, color="#cfcfcf", ha="right", va="center")
 
-    # Readouts
+    # Readouts (3 boxes: Current, Energy ID, Energy DCM)
     ax_read = fig.add_subplot(gs[1:3, :])
     ax_read.set_axis_off()
 
@@ -421,9 +409,9 @@ def render_dashboard(fig, source, pv, out_png=None):
         ax.text(x + w/2, y + h/2, value, transform=ax.transAxes,
                 ha="center", va="center", fontsize=18, fontweight="bold", color=color)
 
-    lcd(ax_read, 0.00, 0.10, 0.32, 0.65, "Energy (keV)", _fmt_num(energy, 4), color="cyan")
-    lcd(ax_read, 0.34, 0.10, 0.32, 0.65, "Mode", _fmt_str(mode), color="white")
-    lcd(ax_read, 0.68, 0.10, 0.32, 0.65, "Current (mA)", _fmt_num(current, 3), color="yellow")
+    lcd(ax_read, 0.00, 0.10, 0.32, 0.65, "Current (mA)", _fmt_num(current, 3), color="yellow")
+    lcd(ax_read, 0.34, 0.10, 0.32, 0.65, "Energy ID (keV)", _fmt_num(energy_id, 4), color="cyan")
+    lcd(ax_read, 0.68, 0.10, 0.32, 0.65, "Energy DCM (keV)", _fmt_num(energy_dcm, 4), color="cyan")
 
     # Detector image
     ax_img = fig.add_subplot(gs[3:12, :])
@@ -539,8 +527,7 @@ def main():
     parser.add_argument("--dummy", action="store_true",
                         help="Use dummy PV values (and synthetic image) instead of EPICS/PVA.")
     parser.add_argument("--out", default="/net/joulefs/coulomb_Public/docroot/tomolog/32id_monitor.png",
-                    help="Output PNG path.")
-
+                        help="Output PNG path.")
     parser.add_argument("--period", type=int, default=60,
                         help="Update period in seconds.")
     args = parser.parse_args()
