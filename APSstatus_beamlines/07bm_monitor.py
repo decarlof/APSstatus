@@ -2,20 +2,10 @@
 #
 # Matplotlib-only 7-BM Monitor PNG generator (+ optional --view).
 #
-# Data sources:
-# - EPICS CA scalars via pyepics (caget)
-# - EPICS PVA detector image via PvaPy/pvapy (module: pvaccess)
-# - Optional --dummy mode for offline testing (includes synthetic image)
-#
-# Features (7-BM):
-# - Filter 1 position, Filter 2 position, Mode (string), Current (mA)
-# - Detector snapshot (PVA): 7bmSP1:Pva1:Image
-# - Image title includes: Acquire, Temp., Exposure, File
-# - Scale bar in microns using 7bmtomo:TomoScan:ImagePixelSize (assumed µm/pixel)
-# - Shutter A/B buttons (no numeric text) using *_CLSD_* PVs (green=open, red=closed)
-# - IOC/Server status panel (centered header):
-#     * green/red dot for each ServerRunning PV
-#     * status strings printed next to server status
+# CHANGE IMPLEMENTED:
+# - The PV "PB:07BM:INBD_WHITE_SW.VAL" is treated as an ON/OFF switch.
+#   If ON (or 1/true/yes) -> Mode label shows "WHITE"
+#   Otherwise              -> Mode label shows "MONO"
 #
 # Usage:
 #   python 07bm_monitor.py                 # EPICS+PVA, headless PNG loop
@@ -90,8 +80,9 @@ class DummyPVSource:
         if pv_name == "7bma1:filter2:Position":
             return "IN" if int(t) % 26 < 13 else "OUT"
 
+        # Mode switch PV (dummy): simulate ON/OFF (so mapping works)
         if pv_name == "PB:07BM:INBD_WHITE_SW.VAL":
-            return "White" if int(t) % 20 < 10 else "Pink"
+            return "ON" if int(t) % 20 < 10 else "OFF"
 
         if pv_name == "S:SRcurrentAI.VAL":
             return 100.0 + 3.0 * math.sin(t / 30.0)
@@ -341,6 +332,19 @@ def add_scale_bar(ax, img_shape, um_per_px, bar_um=200.0, margin_px=20, height_p
         bbox=dict(facecolor="black", alpha=0.35, edgecolor="none", pad=2),
     )
 
+def mode_label_from_inbd_white(pv_value) -> str:
+    """
+    PB:07BM:INBD_WHITE_SW.VAL:
+      - ON / 1 / True / Yes => WHITE
+      - anything else       => MONO
+    """
+    if pv_value is None:
+        return "N/A"
+    s = str(pv_value).strip().lower()
+    if s in ("1", "1.0", "on", "true", "yes"):
+        return "WHITE"
+    return "MONO"
+
 
 # ----------------------------
 # PV config (7-BM)
@@ -380,7 +384,10 @@ def render_7bm_dashboard(fig, source, pv, out_png=None):
 
     filt1 = caget_str(caget_func, pv["Filter 1"], timeout=0.3)
     filt2 = caget_str(caget_func, pv["Filter 2"], timeout=0.3)
-    mode = caget_str(caget_func, pv["Mode"], timeout=0.3)
+
+    mode_raw = caget_str(caget_func, pv["Mode"], timeout=0.3)
+    mode = mode_label_from_inbd_white(mode_raw)
+
     current = caget_num(caget_func, pv["Current"], timeout=0.3)
 
     sh_a = caget_num(caget_func, pv["Shutter A"], timeout=0.3)
@@ -556,7 +563,7 @@ def main():
     parser.add_argument("--dummy", action="store_true",
                         help="Use dummy PV values (and synthetic image) instead of EPICS/PVA.")
     parser.add_argument("--out", default="/net/joulefs/coulomb_Public/docroot/tomolog/07bm_monitor.png",
-                    help="Output PNG path.")
+                        help="Output PNG path.")
     parser.add_argument("--period", type=int, default=60,
                         help="Update period in seconds.")
     args = parser.parse_args()
