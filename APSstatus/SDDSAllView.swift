@@ -35,7 +35,7 @@ struct SDDSAllView: View {
         // ("LNDSData.sdds.gz",           "LNDS Data"),        // <- App page implemented
         // ("MpsData.sdds.gz",            "MPS Data"),            // <- PVs are not connected
         // ("mainStatus.sdds.gz",         "Main Status"),      // <- App page implemented
-        // ("mainSummary.sdds.gz",        "Main Summary"),        // <- no additional info compared to mainStatus.sdds.gz
+        // ("mainSummary.sdds.gz",        "Main Summary"),        // <- no additional info compared to 
         // ("mainSummaryBig1.sdds.gz",    "Main Summary Big 1"),  // <- some PVs are not connected
         // ("PssData.sdds.gz",            "PSS Data"),         // <- App page implemented
         // ("SCU0.sdds.gz",               "SCU 0"),               // <- PVs are not connected
