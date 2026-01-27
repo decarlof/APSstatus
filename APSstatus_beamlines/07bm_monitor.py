@@ -90,7 +90,7 @@ class DummyPVSource:
         if pv_name == "7bma1:filter2:Position":
             return "IN" if int(t) % 26 < 13 else "OUT"
 
-        if pv_name == "PB:07BM:INBD_WHITE_SW.val":
+        if pv_name == "PB:07BM:INBD_WHITE_SW.VAL":
             return "White" if int(t) % 20 < 10 else "Pink"
 
         if pv_name == "S:SRcurrentAI.VAL":
