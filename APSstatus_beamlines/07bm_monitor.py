@@ -349,7 +349,7 @@ def add_scale_bar(ax, img_shape, um_per_px, bar_um=200.0, margin_px=20, height_p
 PV_DISPLAY = {
     "Filter 1": "7bma1:filter1:Position",
     "Filter 2": "7bma1:filter2:Position",
-    "Mode": "PB:07BM:INBD_WHITE_SW.val",
+    "Mode": "PB:07BM:INBD_WHITE_SW.VAL",
     "Current": "S:SRcurrentAI.VAL",
 
     "Shutter A": "PB:07BM:STA_A_FES_CLSD_PL.VAL",
