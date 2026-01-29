@@ -400,17 +400,11 @@ def render_dashboard(fig, source, pv, out_png=None):
                 ha="center", va="bottom", fontsize=10, color="white")
         ax.text(x + w/2, y + h/2, value, transform=ax.transAxes,
                 ha="center", va="center", fontsize=18, fontweight="bold", color=color)
-<<<<<<< HEAD
 
     lcd(ax_read, 0.00, 0.10, 0.32, 0.65, "Current (mA)", _fmt_num(current, 3), color="yellow")
     lcd(ax_read, 0.34, 0.10, 0.32, 0.65, "Energy ID (keV)", _fmt_num(energy_id, 4), color="cyan")
     lcd(ax_read, 0.68, 0.10, 0.32, 0.65, "Energy DCM (keV)", _fmt_num(energy_dcm, 4), color="cyan")
 
-=======
-    lcd(ax_read, 0.00, 0.10, 0.32, 0.65, "Energy (keV)", _fmt_num(energy, 4), color="cyan")
-    lcd(ax_read, 0.34, 0.10, 0.32, 0.65, "Mode", _fmt_str(mode), color="white")
-    lcd(ax_read, 0.68, 0.10, 0.32, 0.65, "Current (mA)", _fmt_num(current, 3), color="yellow")
->>>>>>> e13c4ba (move timestamp from top right to bottom center with "Update: " prefix)
     # Detector image
     ax_img = fig.add_subplot(gs[3:12, :])
     ax_img.set_facecolor("black")
