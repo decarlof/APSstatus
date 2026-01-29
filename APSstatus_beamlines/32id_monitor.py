@@ -360,17 +360,11 @@ PV_DISPLAY = {
 
 def render_dashboard(fig, source, pv, out_png=None):
     caget_func = source.caget
-<<<<<<< HEAD
 
     current = caget_num(caget_func, pv["Current"], timeout=0.3)
     energy_id = caget_num(caget_func, pv["Energy ID"], timeout=0.3)
     energy_dcm = caget_num(caget_func, pv["Energy DCM"], timeout=0.3)
 
-=======
-    energy = caget_num(caget_func, pv["Energy"], timeout=0.3)
-    mode = caget_str(caget_func, pv["Mode"], timeout=0.3)
-    current = caget_num(caget_func, pv["Current"], timeout=0.3)
->>>>>>> e13c4ba (move timestamp from top right to bottom center with "Update: " prefix)
     sh_a = caget_num(caget_func, pv["Shutter A"], timeout=0.3)
     sh_b = caget_num(caget_func, pv["Shutter B"], timeout=0.3)
     um_per_px = caget_num(caget_func, pv["Image Pixel Size"], timeout=0.3)
