@@ -418,42 +418,31 @@ PV_DISPLAY = {
 
 def render_2bm_dashboard(fig, source, pv, out_png=None):
     caget_func = source.caget
-
     energy = caget_num(caget_func, pv["Energy"], timeout=0.3)
     mode = caget_str(caget_func, pv["Mode"], timeout=0.3)
     current = caget_num(caget_func, pv["Current"], timeout=0.3)
-
     sh_a = caget_num(caget_func, pv["Shutter A"], timeout=0.3)
     sh_b = caget_num(caget_func, pv["Shutter B"], timeout=0.3)
-
     cam_sel = caget_num(caget_func, pv["Camera Selected"], timeout=0.3)
     cam_is_sp1 = str(cam_sel).strip() in ("0", "0.0")
     det_name = "Oryx 5MP" if cam_is_sp1 else "Oryx 32MP"
     pva_chan = pv["SP1 PVA Image"] if cam_is_sp1 else pv["SP2 PVA Image"]
-
     um_per_px = caget_num(caget_func, pv["Image Pixel Size"], timeout=0.3)
-
     sp1_acq = caget_str(caget_func, pv["SP1 Acquire"], timeout=0.3)
     sp1_temp = caget_num(caget_func, pv["SP1 Temp."], timeout=0.3)
     sp1_file = caget_num(caget_func, pv["SP1 File count"], timeout=0.3)
-
     sp2_acq = caget_str(caget_func, pv["SP2 Acquire"], timeout=0.3)
     sp2_temp = caget_num(caget_func, pv["SP2 Temp."], timeout=0.3)
     sp2_file = caget_num(caget_func, pv["SP2 File count"], timeout=0.3)
-
     if cam_is_sp1:
         acq, temp, filecount = sp1_acq, sp1_temp, sp1_file
     else:
         acq, temp, filecount = sp2_acq, sp2_temp, sp2_file
-
-    # Compose image header extra fields
     acq_txt = _fmt_str(acq)
     temp_txt = "N/A" if temp is None else f"{_fmt_num(temp, 2)} \N{DEGREE SIGN}C"
     file_txt = _fmt_num(filecount, 0)
-
     img = source.pva_image(pva_chan)
 
-    # Layout
     fig.clf()
     fig.set_facecolor("#1e1e1e")
     gs = fig.add_gridspec(
@@ -467,21 +456,20 @@ def render_2bm_dashboard(fig, source, pv, out_png=None):
     ax_title.set_axis_off()
     ax_title.text(0.0, 0.7, "microCT Monitor", fontsize=16, fontweight="bold",
                   color="white", ha="left", va="center")
-    ax_title.text(1.0, 0.7, datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                  fontsize=9.5, color="#cfcfcf", ha="right", va="center")
+    # REMOVE this line:
+    # ax_title.text(1.0, 0.7, datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    #               fontsize=9.5, color="#cfcfcf", ha="right", va="center")
 
     # Readouts
     ax_read = fig.add_subplot(gs[1:3, :])
     ax_read.set_axis_off()
-
     def lcd(ax, x, y, w, h, label, value, color="white"):
         ax.add_patch(Rectangle((x, y), w, h, transform=ax.transAxes,
-                               facecolor="black", edgecolor="#555555", linewidth=1.0))
+            facecolor="black", edgecolor="#555555", linewidth=1.0))
         ax.text(x + w/2, y + h + 0.08, label, transform=ax.transAxes,
                 ha="center", va="bottom", fontsize=10, color="white")
         ax.text(x + w/2, y + h/2, value, transform=ax.transAxes,
                 ha="center", va="center", fontsize=18, fontweight="bold", color=color)
-
     lcd(ax_read, 0.00, 0.10, 0.32, 0.65, "Energy (keV)", _fmt_num(energy, 4), color="cyan")
     lcd(ax_read, 0.34, 0.10, 0.32, 0.65, "Mode", _fmt_str(mode), color="white")
     lcd(ax_read, 0.68, 0.10, 0.32, 0.65, "Current (mA)", _fmt_num(current, 3), color="yellow")
@@ -496,7 +484,6 @@ def render_2bm_dashboard(fig, source, pv, out_png=None):
         color="white",
         fontsize=11,
     )
-
     if img is None:
         ax_img.text(
             0.5, 0.5,
@@ -512,9 +499,7 @@ def render_2bm_dashboard(fig, source, pv, out_png=None):
         if not np.isfinite(vmin) or not np.isfinite(vmax) or vmax <= vmin:
             vmin, vmax = float(arr.min()), float(arr.max()) if arr.size else (0, 1)
         ax_img.imshow(arr, cmap="gray", vmin=vmin, vmax=vmax, aspect="auto")
-
         add_scale_bar(ax_img, arr.shape, um_per_px, bar_um=200.0)
-
         if um_per_px is not None:
             try:
                 ax_img.text(
@@ -531,13 +516,11 @@ def render_2bm_dashboard(fig, source, pv, out_png=None):
     # Shutters (no numeric text)
     ax_sh = fig.add_subplot(gs[12:14, :])
     ax_sh.set_axis_off()
-
     def shutter_button(ax, x, w, label, color):
         ax.add_patch(Rectangle((x, 0.30), w, 0.55, transform=ax.transAxes,
-                               facecolor=color, edgecolor="black", linewidth=1.2))
+            facecolor=color, edgecolor="black", linewidth=1.2))
         ax.text(x + w/2, 0.58, label, transform=ax.transAxes,
                 ha="center", va="center", fontsize=14, color="white", fontweight="bold")
-
     shutter_button(ax_sh, 0.10, 0.38, "Shutter A", _shutter_color_open_pl(sh_a))
     shutter_button(ax_sh, 0.52, 0.38, "Shutter B", _shutter_color_open_pl(sh_b))
 
@@ -553,34 +536,36 @@ def render_2bm_dashboard(fig, source, pv, out_png=None):
                 ha="left", va="center", fontsize=10, color="#cfcfcf", fontweight="bold")
     ax_ioc.text(0.60, 0.86, "Status", transform=ax_ioc.transAxes,
                 ha="left", va="center", fontsize=10, color="#cfcfcf", fontweight="bold")
-
     y = 0.74
     dy = 0.10
-
     for grp in IOC_GROUPS:
         label = grp["label"]
         run_pv = grp["running_pv"]
         status_pv = grp.get("status_pv")
         mode_kind = grp.get("mode", "server_running")
-
         run_val = caget_str(caget_func, run_pv, timeout=0.3)
         status_val = caget_str(caget_func, status_pv, timeout=0.3) if status_pv else None
-
         dot = dot_color_for_running(run_val, mode_kind)
-
         ax_ioc.add_patch(plt.Circle((0.04, y), 0.015, transform=ax_ioc.transAxes,
-                                    facecolor=dot, edgecolor="black", linewidth=1.0))
-
+                                   facecolor=dot, edgecolor="black", linewidth=1.0))
         ax_ioc.text(0.08, y, label, transform=ax_ioc.transAxes,
                     ha="left", va="center", fontsize=10.0, color="white")
         ax_ioc.text(0.40, y, _fmt_str(run_val), transform=ax_ioc.transAxes,
                     ha="left", va="center", fontsize=9.5, color="#cfcfcf")
-
         if status_pv:
             ax_ioc.text(0.60, y, _fmt_str(status_val), transform=ax_ioc.transAxes,
                         ha="left", va="center", fontsize=9.5, color="#f0f0f0")
-
         y -= dy
+
+    # --- Update timestamp at the bottom center ---
+    ax_time = fig.add_axes([0, 0, 1, 0.05])  # left, bottom, width, height in figure coords
+    ax_time.set_axis_off()
+    ax_time.text(
+        0.5, 0.5,
+        f"Update: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        ha="center", va="center",
+        color="#cfcfcf", fontsize=14, fontweight="bold"
+    )
 
     fig.canvas.draw()
     if out_png:

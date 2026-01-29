@@ -360,27 +360,28 @@ PV_DISPLAY = {
 
 def render_dashboard(fig, source, pv, out_png=None):
     caget_func = source.caget
+<<<<<<< HEAD
 
     current = caget_num(caget_func, pv["Current"], timeout=0.3)
     energy_id = caget_num(caget_func, pv["Energy ID"], timeout=0.3)
     energy_dcm = caget_num(caget_func, pv["Energy DCM"], timeout=0.3)
 
+=======
+    energy = caget_num(caget_func, pv["Energy"], timeout=0.3)
+    mode = caget_str(caget_func, pv["Mode"], timeout=0.3)
+    current = caget_num(caget_func, pv["Current"], timeout=0.3)
+>>>>>>> e13c4ba (move timestamp from top right to bottom center with "Update: " prefix)
     sh_a = caget_num(caget_func, pv["Shutter A"], timeout=0.3)
     sh_b = caget_num(caget_func, pv["Shutter B"], timeout=0.3)
-
     um_per_px = caget_num(caget_func, pv["Image Pixel Size"], timeout=0.3)
-
     acq = caget_str(caget_func, pv["Detector Acquire"], timeout=0.3)
     temp = caget_num(caget_func, pv["Detector Temp."], timeout=0.3)
     filecount = caget_num(caget_func, pv["Detector File count"], timeout=0.3)
-
     acq_txt = _fmt_str(acq)
     temp_txt = "N/A" if temp is None else f"{_fmt_num(temp, 2)} \N{DEGREE SIGN}C"
     file_txt = _fmt_num(filecount, 0)
-
     pva_chan = pv["Detector PVA Image"]
     img = source.pva_image(pva_chan)
-
     fig.clf()
     fig.set_facecolor("#1e1e1e")
     gs = fig.add_gridspec(
@@ -388,31 +389,34 @@ def render_dashboard(fig, source, pv, out_png=None):
         left=0.06, right=0.94, top=0.97, bottom=0.05,
         hspace=0.55, wspace=0.35
     )
-
     # Title
     ax_title = fig.add_subplot(gs[0, :])
     ax_title.set_axis_off()
     ax_title.text(0.0, 0.7, "TXM Monitor", fontsize=16, fontweight="bold",
                   color="white", ha="left", va="center")
-    ax_title.text(1.0, 0.7, datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                  fontsize=9.5, color="#cfcfcf", ha="right", va="center")
+    # -- No timestamp here --
 
     # Readouts (3 boxes: Current, Energy ID, Energy DCM)
     ax_read = fig.add_subplot(gs[1:3, :])
     ax_read.set_axis_off()
-
     def lcd(ax, x, y, w, h, label, value, color="white"):
         ax.add_patch(Rectangle((x, y), w, h, transform=ax.transAxes,
-                               facecolor="black", edgecolor="#555555", linewidth=1.0))
+            facecolor="black", edgecolor="#555555", linewidth=1.0))
         ax.text(x + w/2, y + h + 0.08, label, transform=ax.transAxes,
                 ha="center", va="bottom", fontsize=10, color="white")
         ax.text(x + w/2, y + h/2, value, transform=ax.transAxes,
                 ha="center", va="center", fontsize=18, fontweight="bold", color=color)
+<<<<<<< HEAD
 
     lcd(ax_read, 0.00, 0.10, 0.32, 0.65, "Current (mA)", _fmt_num(current, 3), color="yellow")
     lcd(ax_read, 0.34, 0.10, 0.32, 0.65, "Energy ID (keV)", _fmt_num(energy_id, 4), color="cyan")
     lcd(ax_read, 0.68, 0.10, 0.32, 0.65, "Energy DCM (keV)", _fmt_num(energy_dcm, 4), color="cyan")
 
+=======
+    lcd(ax_read, 0.00, 0.10, 0.32, 0.65, "Energy (keV)", _fmt_num(energy, 4), color="cyan")
+    lcd(ax_read, 0.34, 0.10, 0.32, 0.65, "Mode", _fmt_str(mode), color="white")
+    lcd(ax_read, 0.68, 0.10, 0.32, 0.65, "Current (mA)", _fmt_num(current, 3), color="yellow")
+>>>>>>> e13c4ba (move timestamp from top right to bottom center with "Update: " prefix)
     # Detector image
     ax_img = fig.add_subplot(gs[3:12, :])
     ax_img.set_facecolor("black")
@@ -423,7 +427,6 @@ def render_dashboard(fig, source, pv, out_png=None):
         color="white",
         fontsize=11,
     )
-
     if img is None:
         ax_img.text(
             0.5, 0.5,
@@ -434,7 +437,6 @@ def render_dashboard(fig, source, pv, out_png=None):
         )
     else:
         arr = np.asarray(img)
-        # percentile on downsample for speed
         sample = arr[::4, ::4]
         vmin = np.percentile(sample, 1)
         vmax = np.percentile(sample, 99)
@@ -442,7 +444,6 @@ def render_dashboard(fig, source, pv, out_png=None):
             vmin, vmax = float(arr.min()), float(arr.max()) if arr.size else (0, 1)
         ax_img.imshow(arr, cmap="gray", vmin=vmin, vmax=vmax, aspect="auto")
         add_scale_bar(ax_img, arr.shape, um_per_px, bar_um=200.0)
-
         if um_per_px is not None:
             try:
                 ax_img.text(
@@ -455,20 +456,16 @@ def render_dashboard(fig, source, pv, out_png=None):
                 )
             except Exception:
                 pass
-
     # Shutters (no numeric text)
     ax_sh = fig.add_subplot(gs[12:14, :])
     ax_sh.set_axis_off()
-
     def shutter_button(ax, x, w, label, color):
         ax.add_patch(Rectangle((x, 0.30), w, 0.55, transform=ax.transAxes,
-                               facecolor=color, edgecolor="black", linewidth=1.2))
+            facecolor=color, edgecolor="black", linewidth=1.2))
         ax.text(x + w/2, 0.58, label, transform=ax.transAxes,
                 ha="center", va="center", fontsize=14, color="white", fontweight="bold")
-
     shutter_button(ax_sh, 0.10, 0.38, "Shutter A", _shutter_color_closed_pl(sh_a))
     shutter_button(ax_sh, 0.52, 0.38, "Shutter B", _shutter_color_closed_pl(sh_b))
-
     # IOC / Server status panel
     ax_ioc = fig.add_subplot(gs[14:24, :])
     ax_ioc.set_axis_off()
@@ -476,45 +473,46 @@ def render_dashboard(fig, source, pv, out_png=None):
                                facecolor="#252525", edgecolor="#404040", linewidth=1.0))
     ax_ioc.text(0.5, 0.95, "IOC / Server Status", transform=ax_ioc.transAxes,
                 ha="center", va="top", fontsize=11, color="white", fontweight="bold")
-
     ax_ioc.text(0.08, 0.86, "Component", transform=ax_ioc.transAxes,
                 ha="left", va="center", fontsize=10, color="#cfcfcf", fontweight="bold")
     ax_ioc.text(0.40, 0.86, "EPICS IOC", transform=ax_ioc.transAxes,
                 ha="left", va="center", fontsize=10, color="#cfcfcf", fontweight="bold")
     ax_ioc.text(0.60, 0.86, "Status", transform=ax_ioc.transAxes,
                 ha="left", va="center", fontsize=10, color="#cfcfcf", fontweight="bold")
-
     y = 0.74
     dy = 0.10
-
     for grp in IOC_GROUPS:
         label = grp["label"]
         run_pv = grp["running_pv"]
         status_pv = grp.get("status_pv")
         mode_kind = grp.get("mode", "server_running")
-
         run_val = caget_str(caget_func, run_pv, timeout=0.3)
         status_val = caget_str(caget_func, status_pv, timeout=0.3) if status_pv else None
         dot = dot_color_for_running(run_val, mode_kind)
-
         ax_ioc.add_patch(plt.Circle((0.04, y), 0.015, transform=ax_ioc.transAxes,
-                                    facecolor=dot, edgecolor="black", linewidth=1.0))
-
+                                   facecolor=dot, edgecolor="black", linewidth=1.0))
         ax_ioc.text(0.08, y, label, transform=ax_ioc.transAxes,
                     ha="left", va="center", fontsize=10.0, color="white")
         ax_ioc.text(0.40, y, _fmt_str(run_val), transform=ax_ioc.transAxes,
                     ha="left", va="center", fontsize=9.5, color="#cfcfcf")
-
         if status_pv:
             ax_ioc.text(0.60, y, _fmt_str(status_val), transform=ax_ioc.transAxes,
                         ha="left", va="center", fontsize=9.5, color="#f0f0f0")
-
         y -= dy
+
+    # --- Update timestamp at the bottom center ---
+    ax_time = fig.add_axes([0, 0, 1, 0.05])  # left, bottom, width, height in figure coords
+    ax_time.set_axis_off()
+    ax_time.text(
+        0.5, 0.5,
+        f"Update: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        ha="center", va="center",
+        color="#cfcfcf", fontsize=14, fontweight="bold"
+    )
 
     fig.canvas.draw()
     if out_png:
         fig.savefig(out_png, bbox_inches="tight", pad_inches=0.06)
-
 
 # ----------------------------
 # Main

@@ -423,8 +423,6 @@ def render_7bm_dashboard(fig, source, pv, out_png=None):
     ax_title.set_axis_off()
     ax_title.text(0.0, 0.7, "7-BM Monitor", fontsize=16, fontweight="bold",
                   color="white", ha="left", va="center")
-    ax_title.text(1.0, 0.7, datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                  fontsize=9.5, color="#cfcfcf", ha="right", va="center")
 
     # Readouts
     ax_read = fig.add_subplot(gs[1:3, :])
@@ -546,6 +544,16 @@ def render_7bm_dashboard(fig, source, pv, out_png=None):
                         ha="left", va="center", fontsize=9.5, color="#f0f0f0")
 
         y -= dy
+
+    # --- Update timestamp at the bottom center ---
+    ax_time = fig.add_axes([0, 0, 1, 0.05])  # left, bottom, width, height in figure coords
+    ax_time.set_axis_off()
+    ax_time.text(
+        0.5, 0.5,
+        f"Update: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        ha="center", va="center",
+        color="#cfcfcf", fontsize=14, fontweight="bold"
+    )
 
     fig.canvas.draw()
     if out_png:
