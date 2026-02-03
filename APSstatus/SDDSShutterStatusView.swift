@@ -114,6 +114,10 @@ struct SDDSShutterStatusView: View {
         return displayName[key] ?? key
     }
 
+    private func isNoConnection(_ value: String) -> Bool {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
+            .uppercased() == "_NOCONNECTION_"
+    }
     // MARK: - Derived data from mainStatus (loaderMain.items)
 
     /// MainStatus items as a lookup map
@@ -150,7 +154,7 @@ struct SDDSShutterStatusView: View {
             }
     }
 
-    /// Shutter items only, ORDERED, and **include _NoConnection_** so legend counts stay consistent.
+    /// Shutter items only, ORDERED, excluding _NoConnection_
     private var shutterItemsOrdered: [(description: String, value: String)] {
         loaderMain.items
             .map {
@@ -158,6 +162,7 @@ struct SDDSShutterStatusView: View {
                  value: $0.value.trimmingCharacters(in: .whitespacesAndNewlines))
             }
             .filter { isShutterKey($0.description) }
+            .filter { !isNoConnection($0.value) }   // NEW: drop those beamlines entirely
             .sorted { a, b in
                 let ia = shutterPosition(for: a.description) ?? Int.max
                 let ib = shutterPosition(for: b.description) ?? Int.max
