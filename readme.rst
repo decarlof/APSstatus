@@ -58,10 +58,10 @@ These pages are specific to the selected beamline:
    :widths: 50 50
    :class: borderless
 
-   * - .. image:: docs/source/img/aps_status_02.png
+   * - .. image:: docs/source/img/aps_status_03.png
           :alt: APS Status always-present page
           :width: 100%
-     - .. image:: docs/source/img/aps_status_03.png
+     - .. image:: docs/source/img/aps_status_04.png
           :alt: APS Status beamline page 1
           :width: 100%
 
@@ -69,21 +69,16 @@ These pages are specific to the selected beamline:
    :widths: 50 50
    :class: borderless
 
-   * - .. image:: docs/source/img/aps_status_04.png
+   * - .. image:: docs/source/img/aps_status_05.png
           :alt: APS Status beamline page 2
           :width: 100%
-     - .. image:: docs/source/img/aps_status_05.png
-          :alt: APS Status beamline page 3
-          :width: 100%
 
-.. list-table::
-   :widths: 50 50
-   :class: borderless
 
-   * - .. image:: docs/source/img/aps_status_06.png
-          :alt: APS Status beamline page 4
-          :width: 100%
-     -
+
+.. image:: docs/source/img/aps_status_06.png
+    :alt: APS Status beamline page 4
+    :width: 50%
+
 
 
 Accelerator (machine) specific pages
