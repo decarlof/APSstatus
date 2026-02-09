@@ -66,6 +66,12 @@ IOC_GROUPS = [
         "mode": "server_running",
     },
     {
+        "label": "TomoScanFPGA",
+        "running_pv": "2bmb:TomoScanFPGA:ServerRunning",
+        "status_pv": "2bmb:TomoScanFPGA:ScanStatus",
+        "mode": "server_running",
+    },
+    {
         "label": "TomoScanStream",
         "running_pv": "2bmb:TomoScanStream:ServerRunning",
         "status_pv": "2bmb:TomoScanStream:ScanStatus",
@@ -84,6 +90,7 @@ IOC_GROUPS = [
         "mode": "server_running",
     },
 ]
+
 
 
 # ----------------------------
