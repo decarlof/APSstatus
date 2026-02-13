@@ -4,6 +4,7 @@ struct SDDSAllView: View {
     // Web status image URLs (single source of truth)
     private let webStatusImageURLs = [
         "https://www3.aps.anl.gov/asd/operations/gifplots/HDSRcomfort.png",
+        "https://www3.aps.anl.gov/aod/blops/plots/smallStatusPlot.png",
         "https://www3.aps.anl.gov/aod/blops/plots/WeekHistory.png"
     ]
 
