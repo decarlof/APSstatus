@@ -154,15 +154,28 @@ struct SDDSShutterStatusView: View {
             }
     }
 
+    private func canonicalShutterKey(_ key: String) -> String {
+        guard isShutterKey(key) else { return key }
+        let prefix = String(key.prefix(2))
+        var numberPart = key.dropFirst(2)
+        if let r = numberPart.range(of: "ShutterClosed") {
+            numberPart = numberPart[..<r.lowerBound]
+        }
+        guard let n = Int(String(numberPart)) else { return key }
+        return "\(prefix)\(String(format: "%02d", n))ShutterClosed"
+    }
+
     /// Shutter items only, ORDERED, excluding _NoConnection_
     private var shutterItemsOrdered: [(description: String, value: String)] {
-        loaderMain.items
+        var seen = Set<String>()                                          // ← ADD
+        return loaderMain.items
             .map {
                 (description: $0.description.trimmingCharacters(in: .whitespacesAndNewlines),
                  value: $0.value.trimmingCharacters(in: .whitespacesAndNewlines))
             }
             .filter { isShutterKey($0.description) }
-            .filter { !isNoConnection($0.value) }   // NEW: drop those beamlines entirely
+            .filter { !isNoConnection($0.value) }
+            .filter { seen.insert(canonicalShutterKey($0.description)).inserted }  // ← ADD
             .sorted { a, b in
                 let ia = shutterPosition(for: a.description) ?? Int.max
                 let ib = shutterPosition(for: b.description) ?? Int.max
